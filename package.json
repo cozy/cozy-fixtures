@@ -1,0 +1,44 @@
+{
+  "name": "cozy-fixtures",
+  "description": "Tools to manage fixtures during app development for Cozy",
+  "keywords": [
+    "cozy",
+    "fixtures"
+  ],
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/jsilvestre/cozy-fixtures/blob/master/LICENSE"
+    }
+  ],
+  "version": "0.0.1",
+  "bin": {
+    "cozy-fixtures": "./bin/cozy-fixtures"
+  },
+  "bugs": {
+    "url": "https://github.com/jsilvestre/cozy-fixtures/issues"
+  },
+  "author": "Cozycloud",
+  "contributors": [],
+  "engines": {
+    "node": "*"
+  },
+  "main": "./main.js",
+  "dependencies": {
+    "async": "~0.2.9",
+    "request-json": "~0.4.3",
+    "colors": "~0.6.2"
+  },
+  "devDependencies": {
+    "coffee-script": "*"
+  },
+  "scripts": {
+    "prepublish": "cake build",
+    "test": "cake tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jsilvestre/cozy-fixtures.git"
+  },
+  "optionalDependencies": {}
+}

@@ -1,0 +1,125 @@
+require 'colors'
+async = require 'async'
+Client = require('request-json').JsonClient
+fs = require 'fs'
+
+# Connection to the data system
+client = new Client "http://localhost:9101/"
+
+# Parameters
+## Where the fixture files are
+dirPath = './fixtures/'
+## If the script must be restrain to one doctype, which one
+docTypeTarget = null
+
+_readJSONFile = (filename, callback) ->
+
+    filePath = dirPath + filename
+
+    # check it's a .json file
+    if filePath.indexOf('.json') isnt -1
+        fs.readFile filePath, (err, data) ->
+
+            if err?
+                err = "[ERROR] While reading fixtures files, got #{err}"
+                console.log err
+            else
+                console.log "[INFO] Reading fixtures from #{filePath}..."
+
+            try
+                data = JSON.parse data
+            catch e
+                console.log "[WARN] Skipped #{filePath} because it " + \
+                            "contains malformed JSON --- #{e}"
+
+            callback err, data
+    else
+        errorMsg = "[WARN] Skipped #{filePath} because it is not a JSON file."
+        console.log errorMsg
+        callback null, null
+
+_getAllRequest = (doctypeName) ->
+    return """
+            function (doc) {
+                if (doc.docType === "#{doctypeName}") {
+                    return emit(doc.id, doc);
+                }
+            }
+           """
+
+_createAllRequest = (doctypeName, callback) ->
+    all = map: _getAllRequest doctypeName
+    client.put "request/#{doctypeName}/all/", all, (err, res, body) ->
+        callback err
+
+_removeDocs = (doctypeName, callback) ->
+    client.put "request/#{doctypeName}/all/destroy/", {}, (err, res, body) ->
+        err = body.error if body? and body.error?
+        callback err
+
+_addDoc = (doc, callback) -> (callback) ->
+    client.post 'data/', doc, (err, res, body) ->
+    if err?
+        callback("#{res.statusCode} - #{err}", null)
+    else
+        callback(null, 'OK')
+
+_processFactory = (doctypeName, docs, callback) -> (callback) ->
+
+    console.log "[INFO] DOCTYPE: #{doctypeName} - Starting importation of #{docs.length} documents..."
+
+    console.log  "\t* Creating the \"all\" request..."
+    _createAllRequest doctypeName, (err) ->
+
+        if err?
+            console.log "\t\tx Couldn't create the \"all\" request -- #{err}".red
+        else
+            console.log "\t\t-> \"all\" request successfully created.".green
+
+        console.log "\t* Deleting documents from the Data System..."
+        _removeDocs doctypeName, (err) ->
+            if err?
+                console.log "\t\tx Couldn't delete documents from the " + \
+                           "data system --- #{err}".red
+            else
+                console.log "\t\t-> Documents have been deleted from the Data System.".green
+
+            requests = []
+            for doc in docs
+                requests.push _addDoc doc, callback
+
+            console.log "\t* Adding documents in the Data System..."
+            async.parallel requests, (err, results) ->
+                if err?
+                    console.log "\t\tx One or more documents have not been added to the Data System -- #{err}".red
+                console.log "\t\t-> #{results.length} docs added!".green
+
+                callback null, null
+
+# get the files and data
+async.concat fs.readdirSync(dirPath), _readJSONFile, (err, docs) ->
+
+    # Track malformed document
+    skippedDoctypeMissing = 0
+
+    # Track number of doc per doctype
+    doctypeSet = {}
+    for doc in docs
+        unless doc.docType?
+            skippedDoctypeMissing++
+        else
+            doctypeSet[doc.docType] = [] unless doctypeSet[doc.docType]?
+            doctypeSet[doc.docType].push doc
+
+    if skippedDoctypeMissing > 0
+        console.log "[WARN] Missing doctype information in " + \
+                    "#{skippedDoctypeMissing} documents"
+
+    requests = []
+    for doctype, docs of doctypeSet
+        requests.push _processFactory doctype, docs
+
+    async.series requests, (err, results) ->
+        console.log "[INFO] End of fixtures importation."
+
+
