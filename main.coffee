@@ -21,21 +21,22 @@ _readJSONFile = (filename, callback) ->
         fs.readFile filePath, (err, data) ->
 
             if err?
-                err = "[ERROR] While reading fixtures files, got #{err}"
-                console.log err
+                err = "[ERROR] While reading fixtures files, got #{err}".red
+                console.log err.red
             else
-                console.log "[INFO] Reading fixtures from #{filePath}..."
+                console.log "[INFO] Reading fixtures from #{filePath}...".blue
 
             try
                 data = JSON.parse data
             catch e
-                console.log "[WARN] Skipped #{filePath} because it " + \
-                            "contains malformed JSON --- #{e}"
+                msg = "[WARN] Skipped #{filePath} because it contains " + \
+                            "malformed JSON --- #{e}"
+                console.log msg.red
 
             callback err, data
     else
         errorMsg = "[WARN] Skipped #{filePath} because it is not a JSON file."
-        console.log errorMsg
+        console.log errorMsg.red
         callback null, null
 
 _getAllRequest = (doctypeName) ->
@@ -66,24 +67,32 @@ _addDoc = (doc, callback) -> (callback) ->
 
 _processFactory = (doctypeName, docs, callback) -> (callback) ->
 
-    console.log "[INFO] DOCTYPE: #{doctypeName} - Starting importation of #{docs.length} documents..."
+    msg = "[INFO] DOCTYPE: #{doctypeName} - Starting importation " + \
+          "of #{docs.length} documents..."
+    console.log msg.yellow
 
+    # Creating request
     console.log  "\t* Creating the \"all\" request..."
     _createAllRequest doctypeName, (err) ->
 
         if err?
-            console.log "\t\tx Couldn't create the \"all\" request -- #{err}".red
+            msg = "\t\tx Couldn't create the \"all\" request -- #{err}"
+            console.log msg.red
         else
             console.log "\t\t-> \"all\" request successfully created.".green
 
+        # Removing documents
         console.log "\t* Deleting documents from the Data System..."
         _removeDocs doctypeName, (err) ->
             if err?
-                console.log "\t\tx Couldn't delete documents from the " + \
-                           "data system --- #{err}".red
+                msg = "\t\tx Couldn't delete documents from the data " + \
+                           "system --- #{err}"
+                console.log msg.red
             else
-                console.log "\t\t-> Documents have been deleted from the Data System.".green
+                msg = "\t\t-> Documents have been deleted from the Data System."
+                console.log msg.green
 
+            # Adding documents
             requests = []
             for doc in docs
                 requests.push _addDoc doc, callback
@@ -91,9 +100,12 @@ _processFactory = (doctypeName, docs, callback) -> (callback) ->
             console.log "\t* Adding documents in the Data System..."
             async.parallel requests, (err, results) ->
                 if err?
-                    console.log "\t\tx One or more documents have not been added to the Data System -- #{err}".red
+                    msg = "\t\tx One or more documents have not been added " + \
+                          "to the Data System -- #{err}"
+                    console.log msg.red
                 console.log "\t\t-> #{results.length} docs added!".green
 
+                # starts next doctype importation
                 callback null, null
 
 # get the files and data
@@ -102,7 +114,7 @@ async.concat fs.readdirSync(dirPath), _readJSONFile, (err, docs) ->
     # Track malformed document
     skippedDoctypeMissing = 0
 
-    # Track number of doc per doctype
+    # Store the document per doctypes
     doctypeSet = {}
     for doc in docs
         unless doc.docType?
@@ -111,15 +123,25 @@ async.concat fs.readdirSync(dirPath), _readJSONFile, (err, docs) ->
             doctypeSet[doc.docType] = [] unless doctypeSet[doc.docType]?
             doctypeSet[doc.docType].push doc
 
+    # TODO: improving feedback by telling in which documents
+    #       the doctype is missing
     if skippedDoctypeMissing > 0
-        console.log "[WARN] Missing doctype information in " + \
-                    "#{skippedDoctypeMissing} documents"
+        msg = "[WARN] Missing doctype information in " + \
+                    "#{skippedDoctypeMissing} documents."
+        console.log msg.red
 
+    # Process description:
+    ## create the "all" request
+    ## remove the document relative to the "all" request
+    ## add the documents again
+
+    # prepare process
     requests = []
     for doctype, docs of doctypeSet
         requests.push _processFactory doctype, docs
 
+    # start process for each doctype
     async.series requests, (err, results) ->
-        console.log "[INFO] End of fixtures importation."
+        console.log "[INFO] End of fixtures importation.".blue
 
 
