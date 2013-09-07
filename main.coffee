@@ -60,10 +60,14 @@ _removeDocs = (doctypeName, callback) ->
 
 _addDoc = (doc, callback) -> (callback) ->
     client.post 'data/', doc, (err, res, body) ->
-    if err?
-        callback("#{res.statusCode} - #{err}", null)
-    else
-        callback(null, 'OK')
+        if err?
+            if res?
+                statusCode = "#{statusCode} - "
+            else
+                statusCode = ""
+            callback("#{statusCode}#{err}", null)
+        else
+            callback(null, 'OK')
 
 _processFactory = (doctypeName, docs, callback) -> (callback) ->
 
@@ -85,8 +89,8 @@ _processFactory = (doctypeName, docs, callback) -> (callback) ->
         console.log "\t* Deleting documents from the Data System..."
         _removeDocs doctypeName, (err) ->
             if err?
-                msg = "\t\tx Couldn't delete documents from the data " + \
-                           "system --- #{err}"
+                msg = "\t\tx Couldn't delete documents from the Data " + \
+                           "System --- #{err}"
                 console.log msg.red
             else
                 msg = "\t\t-> Documents have been deleted from the Data System."
@@ -103,7 +107,8 @@ _processFactory = (doctypeName, docs, callback) -> (callback) ->
                     msg = "\t\tx One or more documents have not been added " + \
                           "to the Data System -- #{err}"
                     console.log msg.red
-                console.log "\t\t-> #{results.length} docs added!".green
+                else
+                    console.log "\t\t-> #{results.length} docs added!".green
 
                 # starts next doctype importation
                 callback null, null
