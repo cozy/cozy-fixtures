@@ -2,6 +2,7 @@ require 'colors'
 async = require 'async'
 Client = require('request-json').JsonClient
 fs = require 'fs'
+util = require 'util'
 
 # Connection to the data system
 client = new Client "http://localhost:9101/"
@@ -10,7 +11,7 @@ client = new Client "http://localhost:9101/"
 ## Where the fixture files are
 dirPath = './fixtures/'
 ## If the script must be restrain to one doctype, which one
-docTypeTarget = null
+doctypeTarget = null
 
 _readJSONFile = (filename, callback) ->
 
@@ -113,27 +114,35 @@ _processFactory = (doctypeName, docs, callback) -> (callback) ->
                 # starts next doctype importation
                 callback null, null
 
+
+# TODO
+##handling one file parameter
+##fs.readFileSync filePath
+
 # get the files and data
 async.concat fs.readdirSync(dirPath), _readJSONFile, (err, docs) ->
 
     # Track malformed document
-    skippedDoctypeMissing = 0
+    skippedDoctypeMissing = []
 
     # Store the document per doctypes
     doctypeSet = {}
     for doc in docs
         unless doc.docType?
-            skippedDoctypeMissing++
-        else
+            skippedDoctypeMissing.push doc
+        else if (not doctypeTarget? or doctypeTarget is "") \
+                or doctypeTarget is doc.docType
             doctypeSet[doc.docType] = [] unless doctypeSet[doc.docType]?
             doctypeSet[doc.docType].push doc
 
     # TODO: improving feedback by telling in which documents
     #       the doctype is missing
-    if skippedDoctypeMissing > 0
+    if skippedDoctypeMissing.length > 0
         msg = "[WARN] Missing doctype information in " + \
-                    "#{skippedDoctypeMissing} documents."
+                    "#{skippedDoctypeMissing.length} documents."
         console.log msg.red
+        for missingDoctypeDoc in skippedDoctypeMissing
+            console.log util.inspect missingDoctypeDoc
 
     # Process description:
     ## create the "all" request
