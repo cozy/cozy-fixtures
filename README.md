@@ -1,5 +1,5 @@
 # Cozy-fixtures
-This tool will help you data fixtures for your Cozy development.
+Manage easily the data fixtures for your Cozy developments!
 
 # Usage
 
