@@ -8,11 +8,11 @@ When you develop an application you might want to feed the Data System with data
 
 ```bash
 npm install -g cozy-fixtures
-cozy-fixtures # will load all the fixtures inside ./tests/fixtures/
-cozy-fixtures ./fixtures/ # you can specify a folder
-cozy-fixtures ./fixtures/my-super-fixtures.json # or a file
-cozy-fixtures -d contact # only load the documents for a specified doctype
-cozy-fixtures -s # run the script quietly
+cozy-fixtures load # will load all the fixtures inside ./tests/fixtures/
+cozy-fixtures load ./fixtures/ # you can specify a folder
+cozy-fixtures load ./fixtures/my-super-fixtures.json # or a file
+cozy-fixtures load -d contact # only load the documents for a specified doctype
+cozy-fixtures load -s # run the script quietly
 ```
 
 ## Automatic Tests
