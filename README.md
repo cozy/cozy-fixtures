@@ -37,7 +37,8 @@ You can also do more precise action like:
 * deleting all the documents for a specified doctype
 ```coffeescript
 fixtures = require 'cozy-fixtures'
-fixtures.removeDocs "doctypeName"
+fixtures.removeDocs "doctypeName", (err) ->
+    console.log err if err?
 ```
 
 # How to format the fixtures

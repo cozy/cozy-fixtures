@@ -23,7 +23,11 @@ class FixtureManager
 
     dataSystemUrl: "http://localhost:9101/"
 
-    load: (opts, dirPath, doctypeTarget) ->
+    constructor: ->
+        @client = new Client @dataSystemUrl
+
+
+    load: (opts) ->
 
         # initialize the fixture manager with option
         @dirPath = opts.dirPath if opts?.dirPath?
@@ -32,9 +36,9 @@ class FixtureManager
         @silent = opts.silent if opts?.silent?
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
+            @client = new Client @dataSystemUrl
         @callback = opts.callback if opts?.callback?
 
-        @client = new Client @dataSystemUrl
 
         # start the whole process
         try

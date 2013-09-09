@@ -1,20 +1,46 @@
 #!/usr/bin/env node
 
+require('colors');
+
 var program = require('commander')
     , version = require('../package.json').version
     , fixtureManager = require('../main');
 
 program
   .version(version)
-  .usage('[options] [fixturesPath]')
+  .usage('[options]')
   .option('-d, --doctype <doctypeName>', 'Only document of specified doctype will be processed.')
   .option('-s, --silent', 'The output will not be shown')
-  .parse(process.argv);
 
-fixtureManager.load(
-    {
-        'dirPath': program.args.shift() || './tests/fixtures/',
-        'doctypeTarget': program.doctype || null,
-        'silent': program.silent || null
-    }
-);
+program
+    .command("load [fixturesPath]")
+    .description("Load the fixtures after cleaning the data system")
+    .action(function(fixturePath) {
+
+        fixtureManager.load(
+            {
+                'dirPath': program.args.shift() || './tests/fixtures/',
+                'doctypeTarget': program.doctype || null,
+                'silent': program.silent || null
+            }
+        );
+
+    });
+program
+    .command("clear <doctypeName>")
+    .description("Clear the documents of the specified doctype the Data System")
+    .action(function(doctypeName) {
+        fixtureManager.removeDocs(doctypeName, function(err) {
+            if (err != null) {
+                msg = "\tx Couldn't delete documents for doctype " + doctypeName + " from the Data System --- " + err
+                console.log(err.red);
+            }
+            else {
+                msg = "\t-> Documents for doctype " + doctypeName + " have been deleted from the Data System.";
+                console.log(msg.green);
+            }
+        });
+    });
+
+program.parse(process.argv);
+
