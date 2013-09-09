@@ -23,6 +23,7 @@ You can use cozy-fixtures programatically to ease automatic testing:
 npm install cozy-fixtures --save-dev
 ```
 * Then use it where you need it
+
 ```coffeescript
 fixtures = require 'cozy-fixtures'
 fixtures.load
@@ -35,6 +36,7 @@ fixtures.load
 You can also do more precise action like:
 
 * deleting all the documents for a specified doctype
+
 ```coffeescript
 fixtures = require 'cozy-fixtures'
 fixtures.removeDocs "doctypeName", (err) ->
