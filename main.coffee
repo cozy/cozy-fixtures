@@ -105,7 +105,7 @@ class FixtureManager
 
             # Removing documents
             @log "\t* Deleting documents from the Data System..."
-            @_removeDocs doctypeName, (err) =>
+            @removeDocs doctypeName, (err) =>
                 if err?
                     msg = "\t\tx Couldn't delete documents from the Data " + \
                                "System --- #{err}"
@@ -180,7 +180,7 @@ class FixtureManager
         @client.put "request/#{doctypeName}/all/", all, (err, res, body) ->
             callback err
 
-    _removeDocs: (doctypeName, callback) ->
+    removeDocs: (doctypeName, callback) ->
         url = "request/#{doctypeName}/all/destroy/"
         @client.put url, {}, (err, res, body) ->
             err = body.error if body? and body.error?
