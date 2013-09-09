@@ -2,6 +2,12 @@
 Manage easily the data fixtures for your Cozy developments!
 
 # Usage
+Please note that the "load" process do the following:
+
+* removing all the data for the concerned doctypes
+* adding the fixtures for the concerned doctypes
+
+The "concerned doctypes" are the ones found in the fixture files or the ones you gaves through parameters.
 
 ## CLI
 When you develop an application you might want to feed the Data System with data.
