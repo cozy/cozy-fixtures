@@ -9,24 +9,34 @@ util = require 'util'
 ##handling one file parameter
 ##fs.readFileSync filePath
 
+
 class FixtureManager
 
     # Where the fixture files are
-    dirPath: './fixtures/'
+    dirPath: './tests/fixtures/'
     # If the script must be restrain to one doctype, which one
     doctypeTarget: null
+    # If true, the script won't output anything
+    silent: false
+    # If set, will be executed at the end of the process
+    callback: null
 
     dataSystemUrl: "http://localhost:9101/"
 
-    constructor: ->
-        # Connection to the data system
+    load: (opts, dirPath, doctypeTarget) ->
+
+        # initialize the fixture manager with option
+        @dirPath = opts.dirPath if opts?.dirPath?
+        if opts?.doctypeTarget?
+            @doctypeTarget = opts.doctypeTarget.toLowerCase()
+        @silent = opts.silent if opts?.silent?
+        if opts?.dataSystemUrl?
+            @dataSystemUrl = opts.dataSystemUrl
+        @callback = opts.callback if opts?.callback?
+
         @client = new Client @dataSystemUrl
 
-    load: (dirPath, doctypeTarget) ->
-
-        @dirPath = dirPath if dirPath?
-        @doctypeTarget = doctypeTarget if doctypeTarget?
-
+        # start the whole process
         try
             if fs.lstatSync(@dirPath).isDirectory()
                 # get the files and data
@@ -35,7 +45,7 @@ class FixtureManager
             else if fs.lstatSync(@dirPath).isFile()
                 @_readJSONFile @dirPath, @onRawFixturesLoad, true
         catch e
-            console.log "[ERROR] Cannot load fixtures -- #{e}".red
+            @log "[ERROR] Cannot load fixtures -- #{e}".red
 
     onRawFixturesLoad: (err, docs) =>
 
@@ -45,7 +55,7 @@ class FixtureManager
         # Store the document per doctypes
         doctypeSet = {}
         for doc in docs
-            doc.docType = doc.docType.toLowerCase()
+            doc.docType = doc.docType.toLowerCase() if doc.docType?
             unless doc.docType?
                 skippedDoctypeMissing.push doc
             else if (not @doctypeTarget? or @doctypeTarget is "") \
@@ -55,14 +65,12 @@ class FixtureManager
                     doctypeSet[currentDoctype] = []
                 doctypeSet[currentDoctype].push doc
 
-        # TODO: improving feedback by telling in which documents
-        #       the doctype is missing
         if skippedDoctypeMissing.length > 0
             msg = "[WARN] Missing doctype information in " + \
                         "#{skippedDoctypeMissing.length} documents."
-            console.log msg.red
+            @log msg.red
             for missingDoctypeDoc in skippedDoctypeMissing
-                console.log util.inspect missingDoctypeDoc
+                @log util.inspect missingDoctypeDoc
 
         # prepare process
         requests = []
@@ -70,8 +78,10 @@ class FixtureManager
             requests.push @_processFactory doctype, docs
 
         # start process for each doctype
-        async.series requests, (err, results) ->
-            console.log "[INFO] End of fixtures importation.".blue
+        async.series requests, (err, results) =>
+            @log "[INFO] End of fixtures importation.".blue
+
+            @callback() if @callback?
 
     # Process description:
     ## create the "all" request
@@ -81,43 +91,43 @@ class FixtureManager
 
         msg = "[INFO] DOCTYPE: #{doctypeName} - Starting importation " + \
               "of #{docs.length} documents..."
-        console.log msg.yellow
+        @log msg.yellow
 
         # Creating request
-        console.log  "\t* Creating the \"all\" request..."
+        @log  "\t* Creating the \"all\" request..."
         @_createAllRequest doctypeName, (err) =>
 
             if err?
                 msg = "\t\tx Couldn't create the \"all\" request -- #{err}"
-                console.log msg.red
+                @log msg.red
             else
-                console.log "\t\t-> \"all\" request successfully created.".green
+                @log "\t\t-> \"all\" request successfully created.".green
 
             # Removing documents
-            console.log "\t* Deleting documents from the Data System..."
+            @log "\t* Deleting documents from the Data System..."
             @_removeDocs doctypeName, (err) =>
                 if err?
                     msg = "\t\tx Couldn't delete documents from the Data " + \
                                "System --- #{err}"
-                    console.log msg.red
+                    @log msg.red
                 else
                     msg = "\t\t-> Documents have been deleted from the " + \
                           "Data System."
-                    console.log msg.green
+                    @log msg.green
 
                 # Adding documents
                 requests = []
                 for doc in docs
                     requests.push @_addDoc doc, callback
 
-                console.log "\t* Adding documents in the Data System..."
-                async.parallel requests, (err, results) ->
+                @log "\t* Adding documents in the Data System..."
+                async.parallel requests, (err, results) =>
                     if err?
                         msg = "\t\tx One or more documents have not been " + \
                               "added to the Data System -- #{err}"
-                        console.log msg.red
+                        @log msg.red
                     else
-                        console.log "\t\t-> #{results.length} docs added!".green
+                        @log "\t\t-> #{results.length} docs added!".green
 
                     # starts next doctype importation
                     callback null, null
@@ -132,14 +142,14 @@ class FixtureManager
 
         # check it's a .json file
         if filePath.indexOf('.json') isnt -1
-            fs.readFile filePath, (err, data) ->
+            fs.readFile filePath, (err, data) =>
 
                 if err?
                     err = "[ERROR] While reading fixtures files, got #{err}"
-                    console.log err.red
+                    @log err.red
                 else
                     msg = "[INFO] Reading fixtures from #{filePath}..."
-                    console.log msg.blue
+                    @log msg.blue
 
                 try
                     data = JSON.parse data
@@ -147,13 +157,13 @@ class FixtureManager
                     msg = "[WARN] Skipped #{filePath} because it contains " + \
                                 "malformed JSON --- #{e}"
                     data = []
-                    console.log msg.red
+                    @log msg.red
 
                 callback err, data
         else
             errorMsg = "[WARN] Skipped #{filePath} because it is not a " + \
                         "JSON file."
-            console.log errorMsg.red
+            @log errorMsg.red
             callback null, null
 
     _getAllRequest: (doctypeName) ->
@@ -186,3 +196,9 @@ class FixtureManager
                 callback("#{statusCode}#{err}", null)
             else
                 callback(null, 'OK')
+
+    log: (msg) ->
+        unless @silent
+            console.log msg
+
+module.exports = new FixtureManager()
