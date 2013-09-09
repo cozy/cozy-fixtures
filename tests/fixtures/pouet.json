@@ -1,0 +1,28 @@
+[
+    {
+        "docType": "Alarm",
+        "action": "DISPLAY",
+        "trigg": "Tue Jul 02 2013 16:00:00",
+        "description": "Réunion review scopyleft",
+        "related": null
+    },
+    {
+        "docType": "Contact",
+        "fn": "David Larlet",
+        "datapoints": [
+            {
+                "name": "about",
+                "type": "birthday",
+                "value": "02/02/1980",
+                "id": 1
+            },
+            {
+                "name": "tel",
+                "type": "main",
+                "value": "+33 12 34 56 78",
+                "id": 2
+            }
+        ],
+        "note": "Données complémentaires sur le contact."
+    }
+]

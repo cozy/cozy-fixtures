@@ -27,7 +27,8 @@
   "dependencies": {
     "async": "~0.2.9",
     "request-json": "~0.4.3",
-    "colors": "~0.6.2"
+    "colors": "~0.6.2",
+    "commander": "~2.0.0"
   },
   "devDependencies": {
     "coffee-script": "*"
