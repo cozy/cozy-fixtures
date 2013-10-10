@@ -109,7 +109,7 @@ class FixtureManager
 
             # Removing documents
             @log "\t* Deleting documents from the Data System..."
-            @removeDocs doctypeName, (err) =>
+            @removeAllDocs doctypeName, (err) =>
                 if err?
                     msg = "\t\tx Couldn't delete documents from the Data " + \
                                "System --- #{err}"
@@ -182,9 +182,27 @@ class FixtureManager
     _createAllRequest: (doctypeName, callback) ->
         all = map: @_getAllRequest doctypeName
         @client.put "request/#{doctypeName}/all/", all, (err, res, body) ->
+            @log  "Error occurred during  -- #{err}" if err?
             callback err
 
-    removeDocs: (doctypeName, callback) ->
+    removeAllDocs: (doctypeNames, callback) ->
+
+        factory = (doctypeName) => (callback) =>
+            @_createAllRequest doctypeName, (err) =>
+                @_removeDocsForDoctype doctypeName, (err) ->
+                    callback err
+        requests = []
+        if doctypeNames instanceof Array
+            for doctypeName in doctypeNames
+                requests.push factory doctypeName
+        else
+            requests.push factory doctypeNames
+
+        async.parallel requests, (err) =>
+            @log "Couldn't remove all the docs -- #{err}" if err?
+            callback err
+
+    _removeDocsForDoctype: (doctypeName, callback) ->
         url = "request/#{doctypeName}/all/destroy/"
         @client.put url, {}, (err, res, body) ->
             err = body.error if body? and body.error?
@@ -201,8 +219,7 @@ class FixtureManager
             else
                 callback(null, 'OK')
 
-    log: (msg) ->
-        unless @silent
-            console.log msg
+    log: (msg) -> console.log msg unless @silent
+
 
 module.exports = new FixtureManager()
