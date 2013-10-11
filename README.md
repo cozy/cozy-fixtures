@@ -36,6 +36,7 @@ fixtures.load
     dirPath: 'path/to/fixtures' # default is './tests/fixtures/'
     doctypeTarget: 'doctypeName' # default is null
     silent: true # default is false
+    removeBeforeLoad: false # default is true. Remove docs for concerned doctypes before loading the data
     callback: yourCallback # default is null
 ```
 
@@ -47,6 +48,15 @@ You can also do more precise action like:
 fixtures = require 'cozy-fixtures'
 fixtures.removeDocs "doctypeName", (err) ->
     console.log err if err?
+```
+
+* deleting all the documents from the database
+
+```coffeescript
+fixtures = require 'cozy-fixtures'
+    fixtures.resetDatabase
+        callback: (err) -> console.log err if err?
+        removeAllRequests: true # default is false, also remove the classic 'all' views
 ```
 
 # How to format the fixtures
@@ -85,3 +95,6 @@ A simple example:
     }
 ]
 ```
+
+# Todo
+* adding tests

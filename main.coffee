@@ -20,6 +20,8 @@ class FixtureManager
     silent: false
     # If set, will be executed at the end of the process
     callback: null
+    # If true, will removed documents of concerned doctypes before loading docs
+    removeBeforeLoad: true
 
     dataSystemUrl: "http://localhost:9101/"
 
@@ -38,6 +40,7 @@ class FixtureManager
             @dataSystemUrl = opts.dataSystemUrl
             @client = new Client @dataSystemUrl
         @callback = opts.callback if opts?.callback?
+        @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
 
         # start the whole process
@@ -107,34 +110,44 @@ class FixtureManager
             else
                 @log "\t\t-> \"all\" request successfully created.".green
 
-            # Removing documents
-            @log "\t* Deleting documents from the Data System..."
-            @removeAllDocs doctypeName, (err) =>
-                if err?
-                    msg = "\t\tx Couldn't delete documents from the Data " + \
-                               "System --- #{err}"
-                    @log msg.red
-                else
-                    msg = "\t\t-> Documents have been deleted from the " + \
-                          "Data System."
-                    @log msg.green
+            if @removeBeforeLoad
+                @_processDeletion doctypeName, =>
+                    @_processAddition docs, callback
+            else
+                @_processAddition docs, callback
 
-                # Adding documents
-                requests = []
-                for doc in docs
-                    requests.push @_addDoc doc, callback
+    _processAddition: (docs, callback) ->
+        # Adding documents
+        requests = []
+        for doc in docs
+            requests.push @_addDoc doc, callback
 
-                @log "\t* Adding documents in the Data System..."
-                async.parallel requests, (err, results) =>
-                    if err?
-                        msg = "\t\tx One or more documents have not been " + \
-                              "added to the Data System -- #{err}"
-                        @log msg.red
-                    else
-                        @log "\t\t-> #{results.length} docs added!".green
+        @log "\t* Adding documents in the Data System..."
+        async.parallel requests, (err, results) =>
+            if err?
+                msg = "\t\tx One or more documents have not been " + \
+                      "added to the Data System -- #{err}"
+                @log msg.red
+            else
+                @log "\t\t-> #{results.length} docs added!".green
 
-                    # starts next doctype importation
-                    callback null, null
+            # starts next doctype importation
+            callback null, null
+
+    _processDeletion: (doctypeName, callback) ->
+       # Removing documents
+        @log "\t* Deleting documents from the Data System..."
+        @removeAllDocsByDoctype doctypeName, (err) =>
+            if err?
+                msg = "\t\tx Couldn't delete documents from the Data " + \
+                           "System --- #{err}"
+                @log msg.red
+            else
+                msg = "\t\t-> Documents have been deleted from the " + \
+                      "Data System."
+                @log msg.green
+
+            callback()
 
     _readJSONFile: (filename, callback, absolutePath = false) =>
 
@@ -182,10 +195,10 @@ class FixtureManager
     _createAllRequest: (doctypeName, callback) ->
         all = map: @_getAllRequest doctypeName
         @client.put "request/#{doctypeName}/all/", all, (err, res, body) ->
-            @log  "Error occurred during  -- #{err}" if err?
+            @log  "Error occurred during  -- #{err}".red if err?
             callback err
 
-    removeAllDocs: (doctypeNames, callback) ->
+    removeAllDocsByDoctype: (doctypeNames, callback) ->
 
         factory = (doctypeName) => (callback) =>
             @_createAllRequest doctypeName, (err) =>
@@ -199,13 +212,62 @@ class FixtureManager
             requests.push factory doctypeNames
 
         async.parallel requests, (err) =>
-            @log "Couldn't remove all the docs -- #{err}" if err?
+            @log "\t[ERRROR] Couldn't remove all the docs -- #{err}".red if err?
             callback err
 
     _removeDocsForDoctype: (doctypeName, callback) ->
         url = "request/#{doctypeName}/all/destroy/"
         @client.put url, {}, (err, res, body) ->
             err = body.error if body? and body.error?
+            callback err
+
+    resetDatabase: (opts) ->
+
+        @silent = opts.silent if opts?.silent?
+        callback = opts.callback if opts?.callback?
+        if opts?.removeAllRequests?
+            removeAllRequests = opts.removeAllRequests
+        else
+            removeAllRequests = false
+
+        @client.get 'doctypes', (err, res, body) =>
+            msg = "[INFO] Removing all document from the database..."
+            @log msg.yellow
+            @removeAllDocsByDoctype body, =>
+                @log "\tAll documents have been removed.".green if not err?
+                if removeAllRequests
+                    msg = "[INFO] Removing all the views 'all' from database..."
+                    @log msg.yellow
+                    @_removeAllRequestsByDoctype body, (err) =>
+                        unless err?
+                            @log "\tAll views 'all' have been removed".green
+                        callback err if callback?
+                else
+                    callback err if callback?
+
+    _removeAllRequestsByDoctype: (doctypeNames, callback) ->
+
+        factory = (doctypeName) => (callback) =>
+            @_removeAllRequestsForDoctype doctypeName, (err) ->
+                callback err
+        requests = []
+        if doctypeNames instanceof Array
+            for doctypeName in doctypeNames
+                requests.push factory doctypeName
+        else
+            requests.push factory doctypeNames
+
+        async.parallel requests, (err) =>
+            msg = "\t[ERRROR] Couldn't remove the 'all' request -- #{err}"
+            @log msg.red if err?
+            callback err
+
+    _removeAllRequestsForDoctype: (doctypeName, callback) ->
+        url  = "request/#{doctypeName}/all"
+        @client.del url, (err, res, body) ->
+            err = body.error if body?.error?
+            # we ignore the error if the view doesn't exist
+            err  = null if res?.statusCode in [204, 404]
             callback err
 
     _addDoc: (doc, callback) -> (callback) =>
