@@ -18,9 +18,9 @@ program
     .description("Load the fixtures after cleaning the data system")
     .action(function(fixturePath) {
 
-        var loadOnly = true
+        var removeBeforeLoad = true
         if(program.loadOnly) {
-            loadOnly = false
+            removeBeforeLoad = false
         }
 
         fixtureManager.load(
@@ -28,7 +28,7 @@ program
                 'dirPath': program.args.shift() || './tests/fixtures/',
                 'doctypeTarget': program.doctype || null,
                 'silent': program.silent || null,
-                'removeBeforeLoad': loadOnly
+                'removeBeforeLoad': removeBeforeLoad
             }
         );
 
