@@ -187,7 +187,7 @@ class FixtureManager
         return """
                 function (doc) {
                     if (doc.docType === "#{doctypeName}") {
-                        return emit(doc.id, doc);
+                        return emit(doc._id, doc);
                     }
                 }
                """
