@@ -19,6 +19,7 @@ cozy-fixtures load ./fixtures/ # you can specify a folder
 cozy-fixtures load ./fixtures/my-super-fixtures.json # or a file
 cozy-fixtures load -d contact # only load the documents for a specified doctype
 cozy-fixtures load -s # run the script quietly
+cozy-fixutres -l load # doesn't remove documents before loading
 ```
 
 ## Automatic Tests
