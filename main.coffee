@@ -56,7 +56,7 @@ class FixtureManager
         # Track malformed documents
         skippedDoctypeMissing = []
 
-        # Store the document per doctypes
+        # Store the documents per doctypes
         doctypeSet = {}
         for doc in docs
             doc.docType = doc.docType.toLowerCase() if doc.docType?
