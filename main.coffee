@@ -39,9 +39,17 @@ class FixtureManager
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
             @client = new Client @dataSystemUrl
-        @callback = opts.callback if opts?.callback?
-        @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
+        # We want to reset the default parameters at the end of the process
+        if opts?.callback?
+            @callback = (err) =>
+                @_resetDefaults()
+                opts.callback()
+        else
+            @callback = (err) =>
+                @_resetDefaults()
+
+        @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
         # start the whole process
         try
@@ -53,6 +61,13 @@ class FixtureManager
                 @_readJSONFile @dirPath, @onRawFixturesLoad, true
         catch e
             @log "[ERROR] Cannot load fixtures -- #{e}".red
+
+    _resetDefaults:  ->
+        @dirPath = './tests/fixtures/'
+        @doctypeTarget = null
+        @silent = false
+        @callback = null
+        @removeBeforeLoad = true
 
     onRawFixturesLoad: (err, docs) =>
 
@@ -225,6 +240,7 @@ class FixtureManager
 
         @silent = opts.silent if opts?.silent?
         callback = opts.callback if opts?.callback?
+
         if opts?.removeAllRequests?
             removeAllRequests = opts.removeAllRequests
         else
@@ -241,8 +257,10 @@ class FixtureManager
                     @_removeAllRequestsByDoctype body, (err) =>
                         unless err?
                             @log "\tAll views 'all' have been removed".green
+                        @_resetDefaults()
                         callback err if callback?
                 else
+                    @_resetDefaults()
                     callback err if callback?
 
     _removeAllRequestsByDoctype: (doctypeNames, callback) ->
