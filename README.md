@@ -60,6 +60,20 @@ fixtures = require 'cozy-fixtures'
         removeAllRequests: true # default is false, also remove the classic 'all' views
 ```
 
+If you want to have the same configuration for every call, use the setDefaultValues method:
+
+```coffeescript
+fixtures = require 'cozy-fixtures'
+fixtures.setDefautValues
+            target: './a/custom/target.json'
+            silent: true
+            removeBeforeLoad: false
+fixtures.load callback: (err) -> console.log "fixtures loaded !"
+```
+
+You can still override the defautl values by passing the arguments to the load function.
+
+
 # How to format the fixtures
 * You must put the fixtures into files
 * Fixtures must be described in valid JSON
