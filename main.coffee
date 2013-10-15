@@ -12,22 +12,49 @@ util = require 'util'
 
 class FixtureManager
 
+
+    ###
+    # The value of those properties are set through @_resetDefaults
+    # or @setDefaultValues()
+    ###
+
     # Where the fixture files are
-    dirPath: './tests/fixtures/'
+    dirPath: null
     # If the script must be restrain to one doctype, which one
     doctypeTarget: null
     # If true, the script won't output anything
-    silent: false
+    silent: null
     # If set, will be executed at the end of the process
     callback: null
     # If true, will removed documents of concerned doctypes before loading docs
-    removeBeforeLoad: true
+    removeBeforeLoad: null
+    # Data System URL
+    dataSystemUrl: null
 
-    dataSystemUrl: "http://localhost:9101/"
+    defaultValues:
+        dirPath: './tests/fixtures/'
+        doctypeTarget: null
+        silent: false
+        callback: null
+        removeBeforeLoad: true
+        dataSystemUrl: "http://localhost:9101/"
 
     constructor: ->
+        @_resetDefaults()
         @client = new Client @dataSystemUrl
 
+    _resetDefaults:  ->
+        @dirPath = @defaultValues['dirPath']
+        @doctypeTarget = @defaultValues['doctypeTarget']
+        @silent = @defaultValues['silent']
+        @callback = @defaultValues['callback']
+        @removeBeforeLoad = @defaultValues['removeBeforeLoad']
+        @dataSystemUrl = @defaultValues['dataSystemUrl']
+
+    setDefaultValues: (opts) ->
+        for opt, value of opts
+            @defaultValues[opt] = value if @defaultValues[opt]?
+        @_resetDefaults()
 
     load: (opts) ->
 
@@ -62,12 +89,6 @@ class FixtureManager
         catch e
             @log "[ERROR] Cannot load fixtures -- #{e}".red
 
-    _resetDefaults:  ->
-        @dirPath = './tests/fixtures/'
-        @doctypeTarget = null
-        @silent = false
-        @callback = null
-        @removeBeforeLoad = true
 
     onRawFixturesLoad: (err, docs) =>
 
