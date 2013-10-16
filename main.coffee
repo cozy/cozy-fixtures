@@ -320,7 +320,6 @@ class FixtureManager
             else
                 callback(null, 'OK')
 
-    log: (msg) -> console.log msg unless @silent
-
+    log: -> console.log.apply console, arguments unless @silent
 
 module.exports = new FixtureManager()
