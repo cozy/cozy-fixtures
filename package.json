@@ -35,7 +35,8 @@
   },
   "scripts": {
     "prepublish": "cake build",
-    "test": "cake tests"
+    "test": "cake tests",
+    "postpublish": "rm -f main.js"
   },
   "repository": {
     "type": "git",
