@@ -22,6 +22,7 @@ class FixtureManager
     dirPath: null
     # If the script must be restrain to one doctype, which one
     doctypeTarget: null
+    selectedDoctypes: null
     # If true, the script won't output anything
     silent: null
     # If set, will be executed at the end of the process
@@ -34,6 +35,7 @@ class FixtureManager
     defaultValues:
         dirPath: './tests/fixtures/'
         doctypeTarget: null
+        selectedDoctypes: null
         silent: false
         callback: null
         removeBeforeLoad: true
@@ -43,22 +45,26 @@ class FixtureManager
         @_resetDefaults()
         @client = new Client @dataSystemUrl
 
+    # Reset the options to the default values
     _resetDefaults:  ->
         @dirPath = @defaultValues['dirPath']
         @doctypeTarget = @defaultValues['doctypeTarget']
+        @selectedDoctypes = @defaultValues['selectedDoctypes']
         @silent = @defaultValues['silent']
         @callback = @defaultValues['callback']
         @removeBeforeLoad = @defaultValues['removeBeforeLoad']
         @dataSystemUrl = @defaultValues['dataSystemUrl']
 
+    # Set the default values
     setDefaultValues: (opts) ->
         for opt, value of opts
             @defaultValues[opt] = value if @defaultValues[opt]?
         @_resetDefaults()
 
+    # Load the fixtures
     load: (opts) ->
 
-        # initialize the fixture manager with option
+        # Handle options
         @dirPath = opts.dirPath if opts?.dirPath?
         if opts?.doctypeTarget?
             @doctypeTarget = opts.doctypeTarget.toLowerCase()
@@ -73,23 +79,22 @@ class FixtureManager
                 @_resetDefaults()
                 opts.callback()
         else
-            @callback = (err) =>
-                @_resetDefaults()
+            @callback = (err) => @_resetDefaults()
 
         @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
-        # start the whole process
+        # Seek and open the fixtures files
         try
             if fs.lstatSync(@dirPath).isDirectory()
                 # get the files and data
-                fileList = fs.readdirSync(@dirPath)
+                fileList = fs.readdirSync @dirPath
                 async.concat fileList, @_readJSONFile, @onRawFixturesLoad
             else if fs.lstatSync(@dirPath).isFile()
                 @_readJSONFile @dirPath, @onRawFixturesLoad, true
         catch e
             @log "[ERROR] Cannot load fixtures -- #{e}".red
 
-
+    # Parse the data from files
     onRawFixturesLoad: (err, docs) =>
 
         # Track malformed documents
@@ -103,10 +108,8 @@ class FixtureManager
                 skippedDoctypeMissing.push doc
             else if (not @doctypeTarget? or @doctypeTarget is "") \
                     or @doctypeTarget is doc.docType
-                currentDoctype = doc.docType.toLowerCase()
-                unless doctypeSet[currentDoctype]?
-                    doctypeSet[currentDoctype] = []
-                doctypeSet[currentDoctype].push doc
+                doctypeSet[doc.docType] = [] unless doctypeSet[doc.docType]?
+                doctypeSet[doc.docType].push doc
 
         if skippedDoctypeMissing.length > 0
             msg = "[WARN] Missing doctype information in " + \
@@ -115,51 +118,114 @@ class FixtureManager
             for missingDoctypeDoc in skippedDoctypeMissing
                 @log util.inspect missingDoctypeDoc
 
-        # prepare process
+        # prepare addition process
         requests = []
         for doctype, docs of doctypeSet
-            requests.push @_processFactory doctype, docs
+            requests.push @_processAdditionFactory doctype, docs
 
-        # start process for each doctype
+        # start addition process for each doctype
         async.series requests, (err, results) =>
             @log "[INFO] End of fixtures importation.".blue
 
             @callback() if @callback?
 
     # Process description:
-    ## create the "all" request
-    ## remove the document relative to the "all" request
-    ## add the documents again
-    _processFactory: (doctypeName, docs, callback) -> (callback) =>
+    #  * if removeBeforeLoad option is enabled
+    #    - create 'all' request for given doctype
+    #    - remove all the documents for given doctype
+    #    - remove 'all' request for given doctype
+    #  * anyway -> add the documents for given doctype
+    _processAdditionFactory: (doctypeName, docs, callback) -> (callback) =>
 
         msg = "[INFO] DOCTYPE: #{doctypeName} - Starting importation " + \
               "of #{docs.length} documents..."
         @log msg.yellow
 
-        # Creating request
-        @log  "\t* Creating the \"all\" request..."
-        @_createAllRequest doctypeName, (err) =>
+        if @removeBeforeLoad
+            @removeDocumentsOf doctypeName, (err) =>
+                if err
+                    callback err
+                else
+                    @_processAddition docs, callback
+        else
+            @_processAddition docs, callback
 
+    # Remove the documents of given doctypes
+    #  * param can be String (doctype name) or Array (of doctype names)
+    removeDocumentsOf: (doctypeNames, callback) ->
+
+        # argument can be string or array but we'll process arrays
+        if typeof doctypeNames is 'string' or doctypeNames instanceof String
+            doctypeNames = [doctypeNames]
+
+        doctypeList = doctypeNames.join " "
+        msg = "\t* Removing all documents for doctype(s) #{doctypeList}..."
+        @log msg
+
+        # create 'all' requests for each doctypes
+        @createAllRequestsFor doctypeNames, (err) =>
             if err?
-                msg = "\t\tx Couldn't create the \"all\" request -- #{err}"
+                callback err
+            else
+                # create a new context to avoid the loop bug
+                factory = (doctypeName) => (callback) =>
+                    @_removeDocs doctypeName, (err) ->
+                        callback err
+
+                asyncRequests = []
+                for doctypeName in doctypeNames
+                    asyncRequests.push factory doctypeName
+
+                async.parallel asyncRequests, (err) =>
+                    if err?
+                        msg = "\t[ERRROR] Couldn't delete all the docs"
+                        @log "#{msg} -- #{err}".red
+
+                    # TODO: if the request didn't exist before we create it
+                    # we must remove it
+                    # only useful if removeBeforeLoad is true to isolate tests
+
+                    callback err
+
+    # Create the 'all' requests for given doctypes
+    #  * param can be String (doctype name) or Array (of doctype names)
+    createAllRequestsFor: (doctypeNames, callback) ->
+
+        # argument can be string or array but we'll process arrays
+        if typeof doctypeNames is 'string' or doctypeNames instanceof String
+            doctypeNames = [doctypeNames]
+
+        doctypeList = doctypeNames.join " "
+        msg = "\t\t* Creating 'all' requests for doctype(s) #{doctypeList}..."
+        @log msg
+
+        # create a new context to avoid the loop bug
+        factory = (doctypeName) => (callback) =>
+            @_createAllRequest doctypeName, callback
+
+        asyncRequests = []
+        for doctypeName in doctypeNames
+            asyncRequests.push factory doctypeName
+
+        async.parallel asyncRequests, (err) =>
+            if err?
+                msg = "\t\t\t* Something went wrong during request " + \
+                      "creation -- #{err}"
                 @log msg.red
             else
-                @log "\t\t-> \"all\" request successfully created.".green
+                msg = "\t\t\t-> 'all' requests have been successfully created."
+                @log msg.green
+            callback err
 
-            if @removeBeforeLoad
-                @_processDeletion doctypeName, =>
-                    @_processAddition docs, callback
-            else
-                @_processAddition docs, callback
-
+    # Add docs into the data system
     _processAddition: (docs, callback) ->
         # Adding documents
-        requests = []
+        asyncRequests = []
         for doc in docs
-            requests.push @_addDoc doc, callback
+            asyncRequests.push @_addDoc doc, callback
 
         @log "\t* Adding documents in the Data System..."
-        async.parallel requests, (err, results) =>
+        async.parallel asyncRequests, (err, results) =>
             if err?
                 msg = "\t\tx One or more documents have not been " + \
                       "added to the Data System -- #{err}"
@@ -170,21 +236,7 @@ class FixtureManager
             # starts next doctype importation
             callback null, null
 
-    _processDeletion: (doctypeName, callback) ->
-       # Removing documents
-        @log "\t* Deleting documents from the Data System..."
-        @removeAllDocsByDoctype doctypeName, (err) =>
-            if err?
-                msg = "\t\tx Couldn't delete documents from the Data " + \
-                           "System --- #{err}"
-                @log msg.red
-            else
-                msg = "\t\t-> Documents have been deleted from the " + \
-                      "Data System."
-                @log msg.green
-
-            callback()
-
+    # Parse the JSON file
     _readJSONFile: (filename, callback, absolutePath = false) =>
 
         if absolutePath
@@ -219,6 +271,7 @@ class FixtureManager
             @log errorMsg.red
             callback null, null
 
+    # Generates a 'all' request for given doctype
     _getAllRequest: (doctypeName) ->
         return """
                 function (doc) {
@@ -228,87 +281,7 @@ class FixtureManager
                 }
                """
 
-    _createAllRequest: (doctypeName, callback) ->
-        all = map: @_getAllRequest doctypeName
-        @client.put "request/#{doctypeName}/all/", all, (err, res, body) ->
-            @log  "Error occurred during  -- #{err}".red if err?
-            callback err
-
-    removeAllDocsByDoctype: (doctypeNames, callback) ->
-
-        factory = (doctypeName) => (callback) =>
-            @_createAllRequest doctypeName, (err) =>
-                @_removeDocsForDoctype doctypeName, (err) ->
-                    callback err
-        requests = []
-        if doctypeNames instanceof Array
-            for doctypeName in doctypeNames
-                requests.push factory doctypeName
-        else
-            requests.push factory doctypeNames
-
-        async.parallel requests, (err) =>
-            @log "\t[ERRROR] Couldn't remove all the docs -- #{err}".red if err?
-            callback err
-
-    _removeDocsForDoctype: (doctypeName, callback) ->
-        url = "request/#{doctypeName}/all/destroy/"
-        @client.put url, {}, (err, res, body) ->
-            err = body.error if body? and body.error?
-            callback err
-
-    resetDatabase: (opts) ->
-
-        @silent = opts.silent if opts?.silent?
-        callback = opts.callback if opts?.callback?
-
-        if opts?.removeAllRequests?
-            removeAllRequests = opts.removeAllRequests
-        else
-            removeAllRequests = false
-
-        @client.get 'doctypes', (err, res, body) =>
-            msg = "[INFO] Removing all document from the database..."
-            @log msg.yellow
-            @removeAllDocsByDoctype body, =>
-                @log "\tAll documents have been removed.".green if not err?
-                if removeAllRequests
-                    msg = "[INFO] Removing all the views 'all' from database..."
-                    @log msg.yellow
-                    @_removeAllRequestsByDoctype body, (err) =>
-                        unless err?
-                            @log "\tAll views 'all' have been removed".green
-                        @_resetDefaults()
-                        callback err if callback?
-                else
-                    @_resetDefaults()
-                    callback err if callback?
-
-    _removeAllRequestsByDoctype: (doctypeNames, callback) ->
-
-        factory = (doctypeName) => (callback) =>
-            @_removeAllRequestsForDoctype doctypeName, (err) ->
-                callback err
-        requests = []
-        if doctypeNames instanceof Array
-            for doctypeName in doctypeNames
-                requests.push factory doctypeName
-        else
-            requests.push factory doctypeNames
-
-        async.parallel requests, (err) =>
-            msg = "\t[ERRROR] Couldn't remove the 'all' request -- #{err}"
-            @log msg.red if err?
-            callback err
-
-    _removeAllRequestsForDoctype: (doctypeName, callback) ->
-        url  = "request/#{doctypeName}/all"
-        @client.del url, (err, res, body) ->
-            err = body.error if body?.error?
-            # we ignore the error if the view doesn't exist
-            err  = null if res?.statusCode in [204, 404]
-            callback err
-
+    # Add one document into the data system
     _addDoc: (doc, callback) -> (callback) =>
         @client.post 'data/', doc, (err, res, body) ->
             if err?
@@ -316,10 +289,107 @@ class FixtureManager
                     statusCode = "#{statusCode} - "
                 else
                     statusCode = ""
-                callback("#{statusCode}#{err}", null)
+                callback "#{statusCode}#{err}", null
             else
-                callback(null, 'OK')
+                callback null, true
 
+    # Remove documents for a given doctype
+    _removeDocs: (doctypeName, callback) ->
+        url = "request/#{doctypeName}/all/destroy/"
+        @client.put url, {}, (err, res, body) ->
+            err = body.error if body? and body.error?
+            if err?
+                if res?
+                    statusCode = "#{statusCode} - "
+                else
+                    statusCode = ""
+                callback "#{statusCode}#{err}", null
+            else
+                callback null, true
+
+    # Create a 'all' request for given doctype
+    _createAllRequest: (doctypeName, callback) ->
+        all = map: @_getAllRequest doctypeName
+        @client.put "request/#{doctypeName}/all/", all, (err, res, body) =>
+            @log  "Error occurred during  -- #{err}".red if err?
+            callback err
+
+    # Removes all the documents from database
+    # option removeAllViews to true triggers views removal
+    resetDatabase: (opts) ->
+
+        @silent = opts.silent if opts?.silent?
+        callback = opts.callback if opts?.callback?
+
+        if opts?.removeAllViews?
+            removeAllViews = opts.removeAllViews
+        else
+            removeAllViews = false
+
+        @client.get 'doctypes', (err, res, body) =>
+            msg = "[INFO] Removing all document from the database..."
+            @log msg.yellow
+
+            @removeDocumentsOf body, =>
+                @log "\tAll documents have been removed.".green if not err?
+                if removeAllViews
+                    @removeEveryViews callback: (err) =>
+                        @_resetDefaults()
+                        callback err if callback?
+                else
+                    @_resetDefaults()
+                    callback err if callback?
+
+    # Remove every views (views are attached to design documents)
+    #  * a design can be precised
+    #  * if no design is given, they will all be deleted
+    removeEveryViews: (opts) ->
+
+        callback = opts.callback if opts?.callback?
+        if opts?.designsToRemove?
+            designsToRemove = opts.designsToRemove
+        else
+            designsToRemove = []
+
+        if designsToRemove.length > 0
+            designList = "design " + designsToRemove.join " "
+        else
+            designList = "all the designs"
+        @log "[INFO] Removing views for #{designList}...".yellow
+
+        designsToRemove = designsToRemove.map (single) ->
+            return "_design/#{single}"
+
+        # Get all the design documents
+        @clientCouch = new Client "http://localhost:5984/"
+        url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
+              '&include_docs=true'
+        @clientCouch.get url, (err, res, body) =>
+
+            deleteFactory = (id, rev) => (callback) =>
+                @clientCouch.del "cozy/#{id}?rev=#{rev}", (err, res, body) =>
+                    callback err, body
+
+            # Design docs needed by the data system in order to work
+            requiredDesignDocs = ['_design/metadoctype']
+            asyncRequests = []
+            for row in body.rows
+                mustRemove =  (designsToRemove.length is 0 or \
+                              row.key in designsToRemove) and \
+                              not row.key in requiredDesignDocs
+                if mustRemove
+                    asyncRequests.push deleteFactory row.id, row.value.rev
+
+            async.parallel asyncRequests, (err) =>
+                if err?
+                    msg = "\tx An error occurred while removing the designs."
+                    @log "#{msg} -- #{err}".red
+                else
+                    @log "\t -> The views have been successfully removed.".green
+
+                callback err if callback?
+
+    # Custom log function to allow silence mode
     log: -> console.log.apply console, arguments unless @silent
 
 module.exports = new FixtureManager()

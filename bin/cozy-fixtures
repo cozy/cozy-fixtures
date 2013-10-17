@@ -37,7 +37,7 @@ program
     .command("clear <doctypeName>")
     .description("Clear the documents of the specified doctype the Data System")
     .action(function(doctypeName) {
-        fixtureManager.removeAllDocsByDoctype(doctypeName, function(err) {
+        fixtureManager.removeDocumentsOf(doctypeName, function(err) {
             if (err != null) {
                 msg = "\tx Couldn't delete documents for doctype " + doctypeName + " from the Data System --- " + err
                 console.log(err.red);
