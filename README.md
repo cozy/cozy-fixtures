@@ -57,7 +57,7 @@ fixtures.removeDocs "doctypeName", (err) ->
 fixtures = require 'cozy-fixtures'
     fixtures.resetDatabase
         callback: (err) -> console.log err if err?
-        designsToRemove: true # default is false, removes all the design docs in the database (and related) views
+        designsToRemove: [] # default is empty, removes all the design docs in the database (and related) views or just the specified ones
 ```
 
 If you want to have the same configuration for every call, use the setDefaultValues method:
