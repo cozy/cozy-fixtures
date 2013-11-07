@@ -4,12 +4,6 @@ Client = require('request-json').JsonClient
 fs = require 'fs'
 util = require 'util'
 
-
-# TODO
-##handling one file parameter
-##fs.readFileSync filePath
-
-
 class FixtureManager
 
 
@@ -344,7 +338,6 @@ class FixtureManager
     #  * a design can be precised
     #  * if no design is given, they will all be deleted
     removeEveryViews: (opts) ->
-
         callback = opts.callback if opts?.callback?
         if opts?.designsToRemove?
             designsToRemove = opts.designsToRemove
@@ -365,7 +358,6 @@ class FixtureManager
         url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
               '&include_docs=true'
         @clientCouch.get url, (err, res, body) =>
-
             deleteFactory = (id, rev) => (callback) =>
                 @clientCouch.del "cozy/#{id}?rev=#{rev}", (err, res, body) =>
                     callback err, body
@@ -376,7 +368,7 @@ class FixtureManager
             for row in body.rows
                 mustRemove =  (designsToRemove.length is 0 or \
                               row.key in designsToRemove) and \
-                              not row.key in requiredDesignDocs
+                              not (row.key in requiredDesignDocs)
                 if mustRemove
                     asyncRequests.push deleteFactory row.id, row.value.rev
 
