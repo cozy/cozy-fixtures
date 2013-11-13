@@ -60,8 +60,9 @@ runTests = (fileList) ->
         command += " --reporter spec --compilers coffee:coffee-script --colors"
         exec command, (err, stdout, stderr) ->
             console.log stdout
-            if err
-                console.log "Running mocha caught exception: \n" + err
+            console.log stderr
+
+            process.exit 1 if err?
 
 task "lint", "Run coffeelint on source files", ->
 
