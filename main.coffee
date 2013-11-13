@@ -333,7 +333,7 @@ class FixtureManager
 
             if err? or not body? or (body? and body.error?)
                 msg = "An error occurred while retrieving the doctypes list"
-                errorInfo = require('util').inspect body
+                errorInfo = err or require('util').inspect body
                 msgError = "#{msg} -- #{msgError}"
                 @log msgError.red
                 callback new Error msgError
