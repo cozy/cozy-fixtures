@@ -1,6 +1,8 @@
 # Cozy-fixtures
 Manage easily the data fixtures for your Cozy developments!
 
+[![Build Status](https://travis-ci.org/mycozycloud/cozy-fixtures.png?branch=master)](https://travis-ci.org/mycozycloud/cozy-fixtures)
+
 # Usage
 Please note that the "load" process do the following:
 
