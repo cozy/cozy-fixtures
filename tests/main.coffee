@@ -1,6 +1,7 @@
 path = require 'path'
 should = require('chai').should()
 sinon = require 'sinon'
+nock = require 'nock'
 Client = require('request-json').JsonClient
 
 ds = new Client "http://localhost:9101/"
@@ -10,7 +11,6 @@ fixtures.setDefaultValues
     dirPath: path.resolve __dirname, './fixtures/'
     silent: true
     removeBeforeLoad: false # useless because we clean the DB before tests
-
 
 describe "Fixture Manager", ->
 
@@ -47,6 +47,32 @@ describe "Fixture Manager", ->
 
             it "It should call removeEveryViews", ->
                 @stub.called.should.be.true
+
+        describe "When Data System fails at sending doctypes list", (done) ->
+            before ->
+                @sandbox = sinon.sandbox.create()
+                @stub = @sandbox.stub fixtures, "removeDocumentsOf"
+                @stub.callsArg 1 # call the callback
+
+                @scope = nock('http://localhost:9101')
+                            .get('/doctypes')
+                            .reply(404, error: 'not found')
+
+            before (done) ->
+                fixtures.resetDatabase callback: (err) =>
+                    @err = err
+                    @scope.isDone().should.be.true
+                    done()
+
+            after ->
+                @sandbox.restore()
+                nock.restore()
+
+            it "There should be an error", ->
+                should.exist @err
+
+            it "The process should stop", ->
+                @stub.callCount.should.equal 0
 
     describe "Remove Every Views", ->
 
@@ -93,3 +119,14 @@ describe "Fixture Manager", ->
                     body.rows[0].id.should.equal "_design/contact"
                     body.rows[1].id.should.equal "_design/doctypes"
                     done()
+
+    describe "#removeDocumentsOf", ->
+
+        describe "When removeDocumentsOf is an object as parameter", ->
+            before (done) -> fixtures.load doctypeTarget: 'Alarm', callback: done
+
+            it "There should be an error", (done) ->
+                fixtures.removeDocumentsOf {'error': 'blabla'}, (err) ->
+                    should.exist err
+                    done()
+

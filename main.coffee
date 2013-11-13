@@ -152,6 +152,13 @@ class FixtureManager
         if typeof doctypeNames is 'string' or doctypeNames instanceof String
             doctypeNames = [doctypeNames]
 
+        else if not (doctypeNames instanceof Array)
+            util = require 'util'
+            msg = "The doctype names list should be an array"
+            errorMsg = util.inspect doctypeNames
+            callback new Error "#{msg} -- #{errorMsg}"
+            return
+
         doctypeList = doctypeNames.join " "
         msg = "\t* Removing all documents for doctype(s) #{doctypeList}..."
         @log msg
@@ -323,6 +330,14 @@ class FixtureManager
         @client.get 'doctypes', (err, res, body) =>
             msg = "[INFO] Removing all document from the database..."
             @log msg.yellow
+
+            if err? or not body? or (body? and body.error?)
+                msg = "An error occurred while retrieving the doctypes list"
+                errorInfo = require('util').inspect body
+                msgError = "#{msg} -- #{msgError}"
+                @log msgError.red
+                callback new Error msgError
+                return
 
             @removeDocumentsOf body, =>
                 @log "\tAll documents have been removed.".green if not err?
