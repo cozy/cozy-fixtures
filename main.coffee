@@ -39,6 +39,10 @@ class FixtureManager
         @_resetDefaults()
         @client = new Client @dataSystemUrl
 
+        authentifiedEnvs = ['test', 'production']
+        if process.env.NODE_ENV in authentifiedEnvs
+            @client.setBasicAuth process.env.NAME, process.env.TOKEN
+
     # Reset the options to the default values
     _resetDefaults:  ->
         @dirPath = @defaultValues['dirPath']

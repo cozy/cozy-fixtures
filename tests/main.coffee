@@ -5,6 +5,10 @@ nock = require 'nock'
 Client = require('request-json').JsonClient
 
 ds = new Client "http://localhost:9101/"
+authentifiedEnvs = ['test', 'production']
+if process.env.NODE_ENV in authentifiedEnvs
+    ds.setBasicAuth process.env.NAME, process.env.TOKEN
+
 couch = new Client "http://localhost:5984/"
 fixtures = require '../main'
 fixtures.setDefaultValues
