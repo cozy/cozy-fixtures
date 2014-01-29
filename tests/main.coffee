@@ -23,8 +23,7 @@ describe "Fixture Manager", ->
         describe "When resetDatabase is called with no option", ->
 
             before (done) -> fixtures.load callback: done
-            before (done) ->
-                fixtures.resetDatabase callback: done
+            before (done) -> fixtures.resetDatabase callback: done
 
             it "It should remove every docs in the database", (done) ->
                 ds.get 'doctypes', (err, res, body) ->
@@ -96,8 +95,10 @@ describe "Fixture Manager", ->
                     should.not.exist err
                     should.exist body
                     body.should.have.property 'rows'
-                    body.rows.length.should.equal 1
-                    body.rows[0].id.should.equal "_design/doctypes"
+                    body.rows.length.should.equal 3
+                    body.rows[0].id.should.equal "_design/device"
+                    body.rows[1].id.should.equal "_design/doctypes"
+                    body.rows[2].id.should.equal "_design/tags"
                     done()
 
         describe "When removeEveryViews is called with a list of design to remove", ->
@@ -111,7 +112,6 @@ describe "Fixture Manager", ->
                     designsToRemove: ['alarm']
                     callback: done
 
-
             it "There should be two design documents, doctypes and contact", (done) ->
                 url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
                       '&include_docs=true'
@@ -119,9 +119,11 @@ describe "Fixture Manager", ->
                     should.not.exist err
                     should.exist body
                     body.should.have.property 'rows'
-                    body.rows.length.should.equal 2
+                    body.rows.length.should.equal 4
                     body.rows[0].id.should.equal "_design/contact"
-                    body.rows[1].id.should.equal "_design/doctypes"
+                    body.rows[1].id.should.equal "_design/device"
+                    body.rows[2].id.should.equal "_design/doctypes"
+                    body.rows[3].id.should.equal "_design/tags"
                     done()
 
     describe "#removeDocumentsOf", ->

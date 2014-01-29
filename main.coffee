@@ -382,7 +382,11 @@ class FixtureManager
                     callback err, body
 
             # Design docs needed by the data system in order to work
-            requiredDesignDocs = ['_design/doctypes']
+            requiredDesignDocs = [
+                '_design/doctypes'
+                '_design/device'
+                '_design/tags'
+            ]
             asyncRequests = []
             for row in body.rows
                 mustRemove =  (designsToRemove.length is 0 or \
