@@ -369,8 +369,7 @@ class FixtureManager
             designList = "all the designs"
         @log "[INFO] Removing views for #{designList}...".yellow
 
-        designsToRemove = designsToRemove.map (single) ->
-            return "_design/#{single}"
+        designsToRemove = designsToRemove.map (single) -> "_design/#{single}"
 
         # Get all the design documents
         @clientCouch = new Client "http://localhost:5984/"
