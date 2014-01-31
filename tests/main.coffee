@@ -53,6 +53,10 @@ describe "Fixture Manager", ->
                 @stub.called.should.be.true
 
         describe "When Data System fails at sending doctypes list", (done) ->
+            before (done) -> fixtures.resetDatabase
+                    removeAllViews: true
+                    callback: done
+
             before ->
                 @sandbox = sinon.sandbox.create()
                 @stub = @sandbox.stub fixtures, "removeDocumentsOf"
@@ -82,6 +86,10 @@ describe "Fixture Manager", ->
 
         describe "When removeEveryViews is called without parameters", ->
 
+            before (done) -> fixtures.resetDatabase
+                                removeAllViews: true
+                                callback: done
+
             before (done) ->
                 fixtures._createAllRequest 'alarm', ->
                     fixtures._createAllRequest 'contact', done
@@ -103,6 +111,10 @@ describe "Fixture Manager", ->
                     done()
 
         describe "When removeEveryViews is called with a list of design to remove", ->
+
+            before (done) -> fixtures.resetDatabase
+                                removeAllViews: true
+                                callback: done
 
             before (done) ->
                 fixtures._createAllRequest 'alarm', ->
@@ -130,6 +142,11 @@ describe "Fixture Manager", ->
     describe "#removeDocumentsOf", ->
 
         describe "When removeDocumentsOf is called with an object as parameter", ->
+
+            before (done) -> fixtures.resetDatabase
+                                removeAllViews: true
+                                callback: done
+
             before (done) -> fixtures.load doctypeTarget: 'Alarm', callback: done
 
             it "There should be an error", (done) ->
@@ -140,7 +157,12 @@ describe "Fixture Manager", ->
     describe "#_addDoc", ->
 
         describe "When  _addDoc is called with a document", ->
+            before (done) -> fixtures.resetDatabase
+                    removeAllViews: true
+                    callback: done
+
             before (done) -> fixtures.resetDatabase callback: done
+
             before (done) ->
                 @doc = require('./fixtures/fixtures.json')[0]
                 addDoc = fixtures._addDoc @doc
@@ -162,7 +184,10 @@ describe "Fixture Manager", ->
                     done()
 
         describe "When _addDoc is called with a document with a field _id", ->
-            before (done) -> fixtures.resetDatabase callback: done
+            before (done) -> fixtures.resetDatabase
+                                removeAllViews: true
+                                callback: done
+
             before (done) ->
                 @doc = require('./fixtures/fixtures-with-id.json')[0]
                 @doc.should.have.property '_id'
@@ -182,7 +207,9 @@ describe "Fixture Manager", ->
                     done()
 
         describe "When _addDoc is called with a document with a field _attachments", ->
-            before (done) -> fixtures.resetDatabase callback: done
+            before (done) -> fixtures.resetDatabase
+                                removeAllViews: true
+                                callback: done
             before (done) ->
                 @doc = require('./fixtures/fixtures-with-attachment.json')[0]
                 @attachment = @doc._attachments
