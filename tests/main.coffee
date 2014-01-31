@@ -125,7 +125,7 @@ describe "Fixture Manager", ->
                     designsToRemove: ['alarm']
                     callback: done
 
-            it "There should be two design documents, doctypes and contact", (done) ->
+            it "There should be two 4 documents, doctypes, device, tags and contact", (done) ->
                 url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
                       '&include_docs=true'
                 couch.get url, (err, res, body) ->
