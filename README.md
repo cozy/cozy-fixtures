@@ -109,9 +109,19 @@ A simple example:
             }
         ],
         "note": "Données complémentaires sur le contact."
+    },
+    {
+        "_id": "2",
+        "docType": "File",
+        "_attachments": "tests/fixtures/files/fixtures.json",
+        "class": "document",
+        "lastModification": "Thu Oct 17 2013 08:29:21 GMT+0200 (CEST)",
+        "name": "fixtures.json",
+        "path": "",
+        "size": 2413
     }
+}
 ]
 ```
+Note that you can add files as attachments. In order to achieve this, add a "_attachments" field to your fixture and put the path relatively to where you run the command.
 
-# Todo
-* adding tests
