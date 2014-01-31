@@ -1,4 +1,5 @@
 path = require 'path'
+fs = require 'fs'
 should = require('chai').should()
 sinon = require 'sinon'
 nock = require 'nock'
@@ -128,11 +129,87 @@ describe "Fixture Manager", ->
 
     describe "#removeDocumentsOf", ->
 
-        describe "When removeDocumentsOf is an object as parameter", ->
+        describe "When removeDocumentsOf is called with an object as parameter", ->
             before (done) -> fixtures.load doctypeTarget: 'Alarm', callback: done
 
             it "There should be an error", (done) ->
                 fixtures.removeDocumentsOf {'error': 'blabla'}, (err) ->
                     should.exist err
                     done()
+
+    describe "#_addDoc", ->
+
+        describe "When  _addDoc is called with a document", ->
+            before (done) -> fixtures.resetDatabase callback: done
+            before (done) ->
+                @doc = require('./fixtures/fixtures.json')[0]
+                addDoc = fixtures._addDoc @doc
+                addDoc done
+
+            # we must create the all request for the doc's doctype to check the creation
+            before (done) ->
+                @doctype = @doc.docType
+                fixtures._createAllRequest @doctype, done
+
+            it "The document should be added to the data system", (done) ->
+                ds.post "request/#{@doctype}/all/", {}, (err, res, body) =>
+                    should.not.exist err
+                    should.exist body
+                    body.length.should.equal 1
+                    body[0].value.docType.should.equal @doctype
+                    Object.keys(@doc).forEach (field) ->
+                        should.exist body[0].value[field]
+                    done()
+
+        describe "When _addDoc is called with a document with a field _id", ->
+            before (done) -> fixtures.resetDatabase callback: done
+            before (done) ->
+                @doc = require('./fixtures/fixtures-with-id.json')[0]
+                @doc.should.have.property '_id'
+                @id = @doc._id
+                addDoc = fixtures._addDoc @doc
+                addDoc done
+
+            it "The document should be added in the database with the specified ID", (done) ->
+                ds.get "data/#{@id}/", (err, res, body) =>
+                    should.not.exist err
+                    should.exist body
+
+                    Object.keys(@doc).forEach (field) =>
+                        # if the value is null, body[field] is null
+                        # but assertion should be true
+                        body[field]?.should.deep.equal @doc[field]
+                    done()
+
+        describe "When _addDoc is called with a document with a field _attachments", ->
+            before (done) -> fixtures.resetDatabase callback: done
+            before (done) ->
+                @doc = require('./fixtures/fixtures-with-attachment.json')[0]
+                @attachment = @doc._attachments
+                @doc.should.have.property '_id'
+                @doc.should.have.property '_attachments'
+                @id = @doc._id
+                addDoc = fixtures._addDoc @doc
+                addDoc done
+
+            it "The document should be added in the database", (done) ->
+                ds.get "data/#{@id}/", (err, res, body) =>
+                    should.not.exist err
+                    should.exist body
+
+                    Object.keys(@doc).forEach (field) =>
+                        # if the value is null, body[field] is null
+                        # but assertion should be true
+                        body[field]?.should.deep.equal @doc[field]
+                    body.should.have.property 'binary'
+                    @binary = body.binary
+                    done()
+            it "And it should have a binary linked that contains the attachement", (done) ->
+
+                    ds.get "data/#{@id}/binaries/file", (err, res, body) =>
+                        should.not.exist err
+                        should.exist body
+                        body.should.not.have.property 'error'
+                        done()
+
 

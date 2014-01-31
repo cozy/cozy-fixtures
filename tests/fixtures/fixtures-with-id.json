@@ -1,0 +1,10 @@
+[
+    {
+        "_id": "1",
+        "docType": "Alarm",
+        "action": "DISPLAY",
+        "trigg": "Tue Jul 02 2013 16:00:00",
+        "description": "Réunion review scopyleft",
+        "related": null
+    }
+]

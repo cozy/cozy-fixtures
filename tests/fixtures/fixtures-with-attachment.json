@@ -1,0 +1,12 @@
+[
+    {
+        "_id": "2",
+        "docType": "File",
+        "_attachments": "tests/fixtures/files/fixtures.json",
+        "class": "document",
+        "lastModification": "Thu Oct 17 2013 08:29:21 GMT+0200 (CEST)",
+        "name": "fixtures.json",
+        "path": "",
+        "size": 2413
+    }
+]

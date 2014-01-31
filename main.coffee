@@ -3,6 +3,7 @@ async = require 'async'
 Client = require('request-json').JsonClient
 fs = require 'fs'
 util = require 'util'
+path = require 'path'
 
 class FixtureManager
 
@@ -227,7 +228,7 @@ class FixtureManager
         # Adding documents
         asyncRequests = []
         for doc in docs
-            asyncRequests.push @_addDoc doc, callback
+            asyncRequests.push @_addDoc doc
 
         @log "\t* Adding documents in the Data System..."
         async.parallel asyncRequests, (err, results) =>
@@ -287,8 +288,10 @@ class FixtureManager
                """
 
     # Add one document into the data system
-    _addDoc: (doc, callback) -> (callback) =>
-        @client.post 'data/', doc, (err, res, body) ->
+    _addDoc: (doc) -> (callback) =>
+        _attachments = doc._attachments
+        delete doc._attachments
+        @client.post 'data/', doc, (err, res, body) =>
             if err?
                 if res?
                     statusCode = "#{statusCode} - "
@@ -296,7 +299,20 @@ class FixtureManager
                     statusCode = ""
                 callback "#{statusCode}#{err}", null
             else
-                callback null, true
+                if _attachments?
+                    filePath = path.resolve _attachments
+                    url = "data/#{body._id}/binaries/"
+                    filename = _attachments.split '/'
+                    filename = filename[filename.length - 1]
+                    data = name: 'file'
+                    @client.sendFile url, filePath, data, (err, res, body) ->
+                        if err? or body.err?
+                            err = err or body.err
+                            callback err
+                        else
+                            callback null, true
+                else
+                    callback null, true
 
     # Remove documents for a given doctype
     _removeDocs: (doctypeName, callback) ->
