@@ -61,17 +61,20 @@ class FixtureManager
     # Add permissions if it is necessary
     _setPermissions: (callback) =>
         if fs.existsSync('/etc/cozy/controller.token') and not @auth
+            # Recover home password
             fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
                 if err
                     console.log 'If you are in production environment, you ' + 
                         'should have root access'
                     callback()
                 else
-                    manifest = fs.readFileSync('./package.json')
-                    manifest = JSON.parse(manifest)
                     credentials = S(credentials.toString('utf8')).lines()
                     pwd = credentials[0]
+                    # Recover application name
+                    manifest = fs.readFileSync('./package.json')
+                    manifest = JSON.parse(manifest)
                     name = manifest.name.replace('cozy-', '')
+                    # Recover application password
                     @client.setBasicAuth 'home', pwd
                     @client.post '/request/application/all/', {key: name}, (err, res, body) =>
                         if body?[0]?.value?.password?
@@ -195,30 +198,31 @@ class FixtureManager
         msg = "\t* Removing all documents for doctype(s) #{doctypeList}..."
         @log msg
 
-        # create 'all' requests for each doctypes
-        @createAllRequestsFor doctypeNames, (err) =>
-            if err?
-                callback err
-            else
-                # create a new context to avoid the loop bug
-                factory = (doctypeName) => (callback) =>
-                    @_removeDocs doctypeName, (err) ->
-                        callback err
-
-                asyncRequests = []
-                for doctypeName in doctypeNames
-                    asyncRequests.push factory doctypeName
-
-                async.parallel asyncRequests, (err) =>
-                    if err?
-                        msg = "\t[ERRROR] Couldn't delete all the docs"
-                        @log "#{msg} -- #{err}".red
-
-                    # TODO: if the request didn't exist before we create it
-                    # we must remove it
-                    # only useful if removeBeforeLoad is true to isolate tests
-
+        @_setPermissions () => 
+            # create 'all' requests for each doctypes
+            @createAllRequestsFor doctypeNames, (err) =>
+                if err?
                     callback err
+                else
+                    # create a new context to avoid the loop bug
+                    factory = (doctypeName) => (callback) =>
+                        @_removeDocs doctypeName, (err) ->
+                            callback err
+
+                    asyncRequests = []
+                    for doctypeName in doctypeNames
+                        asyncRequests.push factory doctypeName
+
+                    async.parallel asyncRequests, (err) =>
+                        if err?
+                            msg = "\t[ERRROR] Couldn't delete all the docs"
+                            @log "#{msg} -- #{err}".red
+
+                        # TODO: if the request didn't exist before we create it
+                        # we must remove it
+                        # only useful if removeBeforeLoad is true to isolate tests
+
+                        callback err
 
     # Create the 'all' requests for given doctypes
     #  * param can be String (doctype name) or Array (of doctype names)
