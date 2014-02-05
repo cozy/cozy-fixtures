@@ -2,6 +2,7 @@ require 'colors'
 async = require 'async'
 Client = require('request-json').JsonClient
 fs = require 'fs'
+S = require 'string'
 util = require 'util'
 path = require 'path'
 
@@ -26,6 +27,8 @@ class FixtureManager
     removeBeforeLoad: null
     # Data System URL
     dataSystemUrl: null
+    # Authentication
+    auth: false
 
     defaultValues:
         dirPath: './tests/fixtures/'
@@ -43,6 +46,7 @@ class FixtureManager
         authentifiedEnvs = ['test', 'production']
         if process.env.NODE_ENV in authentifiedEnvs
             @client.setBasicAuth process.env.NAME, process.env.TOKEN
+            @auth = true
 
     # Reset the options to the default values
     _resetDefaults:  ->
@@ -54,6 +58,33 @@ class FixtureManager
         @removeBeforeLoad = @defaultValues['removeBeforeLoad']
         @dataSystemUrl = @defaultValues['dataSystemUrl']
 
+    # Add permissions if it is necessary
+    _setPermissions: (callback) =>
+        if fs.existsSync('/etc/cozy/controller.token') and not @auth
+            # Recover home password
+            fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
+                if err
+                    console.log 'If you are in production environment, you ' + 
+                        'should have root access'
+                    callback()
+                else
+                    credentials = S(credentials.toString('utf8')).lines()
+                    pwd = credentials[0]
+                    # Recover application name
+                    manifest = fs.readFileSync('./package.json')
+                    manifest = JSON.parse(manifest)
+                    name = manifest.name.replace('cozy-', '')
+                    # Recover application password
+                    @client.setBasicAuth 'home', pwd
+                    @client.post '/request/application/all/', {key: name}, (err, res, body) =>
+                        if body?[0]?.value?.password?
+                            pwd = body[0].value.password
+                            @client.setBasicAuth name, pwd
+                        callback()
+        else
+            callback()
+
+
     # Set the default values
     setDefaultValues: (opts) ->
         for opt, value of opts
@@ -62,7 +93,6 @@ class FixtureManager
 
     # Load the fixtures
     load: (opts) ->
-
         # Handle options
         @dirPath = opts.dirPath if opts?.dirPath?
         if opts?.doctypeTarget?
@@ -70,28 +100,28 @@ class FixtureManager
         @silent = opts.silent if opts?.silent?
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
-            @client = new Client @dataSystemUrl
+            @client = new Client @dataSystemUrl 
+        @_setPermissions () => 
+            # We want to reset the default parameters at the end of the process
+            if opts?.callback?
+                @callback = (err) =>
+                    @_resetDefaults()
+                    opts.callback()
+            else
+                @callback = (err) => @_resetDefaults()
 
-        # We want to reset the default parameters at the end of the process
-        if opts?.callback?
-            @callback = (err) =>
-                @_resetDefaults()
-                opts.callback()
-        else
-            @callback = (err) => @_resetDefaults()
+            @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
-        @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
-
-        # Seek and open the fixtures files
-        try
-            if fs.lstatSync(@dirPath).isDirectory()
-                # get the files and data
-                fileList = fs.readdirSync @dirPath
-                async.concat fileList, @_readJSONFile, @onRawFixturesLoad
-            else if fs.lstatSync(@dirPath).isFile()
-                @_readJSONFile @dirPath, @onRawFixturesLoad, true
-        catch e
-            @log "[ERROR] Cannot load fixtures -- #{e}".red
+            # Seek and open the fixtures files
+            try
+                if fs.lstatSync(@dirPath).isDirectory()
+                    # get the files and data
+                    fileList = fs.readdirSync @dirPath
+                    async.concat fileList, @_readJSONFile, @onRawFixturesLoad
+                else if fs.lstatSync(@dirPath).isFile()
+                    @_readJSONFile @dirPath, @onRawFixturesLoad, true
+            catch e
+                @log "[ERROR] Cannot load fixtures -- #{e}".red
 
     # Parse the data from files
     onRawFixturesLoad: (err, docs) =>
@@ -168,30 +198,31 @@ class FixtureManager
         msg = "\t* Removing all documents for doctype(s) #{doctypeList}..."
         @log msg
 
-        # create 'all' requests for each doctypes
-        @createAllRequestsFor doctypeNames, (err) =>
-            if err?
-                callback err
-            else
-                # create a new context to avoid the loop bug
-                factory = (doctypeName) => (callback) =>
-                    @_removeDocs doctypeName, (err) ->
-                        callback err
-
-                asyncRequests = []
-                for doctypeName in doctypeNames
-                    asyncRequests.push factory doctypeName
-
-                async.parallel asyncRequests, (err) =>
-                    if err?
-                        msg = "\t[ERRROR] Couldn't delete all the docs"
-                        @log "#{msg} -- #{err}".red
-
-                    # TODO: if the request didn't exist before we create it
-                    # we must remove it
-                    # only useful if removeBeforeLoad is true to isolate tests
-
+        @_setPermissions () => 
+            # create 'all' requests for each doctypes
+            @createAllRequestsFor doctypeNames, (err) =>
+                if err?
                     callback err
+                else
+                    # create a new context to avoid the loop bug
+                    factory = (doctypeName) => (callback) =>
+                        @_removeDocs doctypeName, (err) ->
+                            callback err
+
+                    asyncRequests = []
+                    for doctypeName in doctypeNames
+                        asyncRequests.push factory doctypeName
+
+                    async.parallel asyncRequests, (err) =>
+                        if err?
+                            msg = "\t[ERRROR] Couldn't delete all the docs"
+                            @log "#{msg} -- #{err}".red
+
+                        # TODO: if the request didn't exist before we create it
+                        # we must remove it
+                        # only useful if removeBeforeLoad is true to isolate tests
+
+                        callback err
 
     # Create the 'all' requests for given doctypes
     #  * param can be String (doctype name) or Array (of doctype names)
