@@ -28,7 +28,7 @@ class FixtureManager
     # Data System URL
     dataSystemUrl: null
     # Authentication
-    auth = false
+    auth: false
 
     defaultValues:
         dirPath: './tests/fixtures/'
@@ -46,7 +46,7 @@ class FixtureManager
         authentifiedEnvs = ['test', 'production']
         if process.env.NODE_ENV in authentifiedEnvs
             @client.setBasicAuth process.env.NAME, process.env.TOKEN
-            auth = true
+            @auth = true
 
     # Reset the options to the default values
     _resetDefaults:  ->
@@ -60,7 +60,7 @@ class FixtureManager
 
     # Add permissions if it is necessary
     _setPermissions: (callback) =>
-        if fs.existsSync('/etc/cozy/controller.token') and not auth
+        if fs.existsSync('/etc/cozy/controller.token') and not @auth
             fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
                 if err
                     console.log 'If you are in production environment, you ' + 
