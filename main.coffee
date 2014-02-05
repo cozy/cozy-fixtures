@@ -2,6 +2,7 @@ require 'colors'
 async = require 'async'
 Client = require('request-json').JsonClient
 fs = require 'fs'
+S = require 'string'
 util = require 'util'
 path = require 'path'
 
@@ -43,6 +44,8 @@ class FixtureManager
         authentifiedEnvs = ['test', 'production']
         if process.env.NODE_ENV in authentifiedEnvs
             @client.setBasicAuth process.env.NAME, process.env.TOKEN
+        if process.env.NAME is undefined
+            @_setPermissions()
 
     # Reset the options to the default values
     _resetDefaults:  ->
@@ -53,6 +56,26 @@ class FixtureManager
         @callback = @defaultValues['callback']
         @removeBeforeLoad = @defaultValues['removeBeforeLoad']
         @dataSystemUrl = @defaultValues['dataSystemUrl']
+
+    # Add permissions if it is necessary
+    _setPermissions: () =>
+        if fs.existsSync('/etc/cozy/controller.token')
+            fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
+                if err
+                    console.log 'If you are in production environment, you ' + 
+                        'should have root access'
+                    callback()
+                else
+                    manifest = fs.readFileSync('./package.json')
+                    manifest = JSON.parse(manifest)
+                    credentials = S(credentials.toString('utf8')).lines()
+                    pwd = credentials[0]
+                    @client.setBasicAuth 'home', pwd
+                    @client.post '/request/application/all/', {key: manifest.name}, (err, res, body) =>
+                        pwd = body.password
+                        @client.setBasicAuth manifest.name, pwd
+        else
+
 
     # Set the default values
     setDefaultValues: (opts) ->
@@ -70,8 +93,7 @@ class FixtureManager
         @silent = opts.silent if opts?.silent?
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
-            @client = new Client @dataSystemUrl
-
+            @client = new Client @dataSystemUrl  
         # We want to reset the default parameters at the end of the process
         if opts?.callback?
             @callback = (err) =>
