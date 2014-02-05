@@ -27,6 +27,8 @@ class FixtureManager
     removeBeforeLoad: null
     # Data System URL
     dataSystemUrl: null
+    # Authentication
+    auth = false
 
     defaultValues:
         dirPath: './tests/fixtures/'
@@ -44,8 +46,7 @@ class FixtureManager
         authentifiedEnvs = ['test', 'production']
         if process.env.NODE_ENV in authentifiedEnvs
             @client.setBasicAuth process.env.NAME, process.env.TOKEN
-        if process.env.NAME is undefined
-            @_setPermissions()
+            auth = true
 
     # Reset the options to the default values
     _resetDefaults:  ->
@@ -58,8 +59,8 @@ class FixtureManager
         @dataSystemUrl = @defaultValues['dataSystemUrl']
 
     # Add permissions if it is necessary
-    _setPermissions: () =>
-        if fs.existsSync('/etc/cozy/controller.token')
+    _setPermissions: (callback) =>
+        if fs.existsSync('/etc/cozy/controller.token') and not auth
             fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
                 if err
                     console.log 'If you are in production environment, you ' + 
@@ -70,11 +71,15 @@ class FixtureManager
                     manifest = JSON.parse(manifest)
                     credentials = S(credentials.toString('utf8')).lines()
                     pwd = credentials[0]
+                    name = manifest.name.replace('cozy-', '')
                     @client.setBasicAuth 'home', pwd
-                    @client.post '/request/application/all/', {key: manifest.name}, (err, res, body) =>
-                        pwd = body.password
-                        @client.setBasicAuth manifest.name, pwd
+                    @client.post '/request/application/all/', {key: name}, (err, res, body) =>
+                        if body?[0]?.value?.password?
+                            pwd = body[0].value.password
+                            @client.setBasicAuth name, pwd
+                        callback()
         else
+            callback()
 
 
     # Set the default values
@@ -85,7 +90,6 @@ class FixtureManager
 
     # Load the fixtures
     load: (opts) ->
-
         # Handle options
         @dirPath = opts.dirPath if opts?.dirPath?
         if opts?.doctypeTarget?
@@ -93,27 +97,28 @@ class FixtureManager
         @silent = opts.silent if opts?.silent?
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
-            @client = new Client @dataSystemUrl  
-        # We want to reset the default parameters at the end of the process
-        if opts?.callback?
-            @callback = (err) =>
-                @_resetDefaults()
-                opts.callback()
-        else
-            @callback = (err) => @_resetDefaults()
+            @client = new Client @dataSystemUrl 
+        @_setPermissions () => 
+            # We want to reset the default parameters at the end of the process
+            if opts?.callback?
+                @callback = (err) =>
+                    @_resetDefaults()
+                    opts.callback()
+            else
+                @callback = (err) => @_resetDefaults()
 
-        @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
+            @removeBeforeLoad = opts.removeBeforeLoad if opts?.removeBeforeLoad?
 
-        # Seek and open the fixtures files
-        try
-            if fs.lstatSync(@dirPath).isDirectory()
-                # get the files and data
-                fileList = fs.readdirSync @dirPath
-                async.concat fileList, @_readJSONFile, @onRawFixturesLoad
-            else if fs.lstatSync(@dirPath).isFile()
-                @_readJSONFile @dirPath, @onRawFixturesLoad, true
-        catch e
-            @log "[ERROR] Cannot load fixtures -- #{e}".red
+            # Seek and open the fixtures files
+            try
+                if fs.lstatSync(@dirPath).isDirectory()
+                    # get the files and data
+                    fileList = fs.readdirSync @dirPath
+                    async.concat fileList, @_readJSONFile, @onRawFixturesLoad
+                else if fs.lstatSync(@dirPath).isFile()
+                    @_readJSONFile @dirPath, @onRawFixturesLoad, true
+            catch e
+                @log "[ERROR] Cannot load fixtures -- #{e}".red
 
     # Parse the data from files
     onRawFixturesLoad: (err, docs) =>
