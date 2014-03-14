@@ -1,8 +1,11 @@
 {
   "name": "cozy-fixtures",
   "description": "Tools to manage fixtures during app development for Cozy",
+  "author": "Cozy Cloud <contact@cozycloud.cc> (http://cozycloud.cc)",
   "keywords": [
     "cozy",
+    "qa",
+    "tests",
     "fixtures"
   ],
   "licenses": [
@@ -18,8 +21,6 @@
   "bugs": {
     "url": "https://github.com/jsilvestre/cozy-fixtures/issues"
   },
-  "author": "Cozycloud",
-  "contributors": [],
   "engines": {
     "node": "*"
   },
