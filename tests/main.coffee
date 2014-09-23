@@ -23,7 +23,7 @@ describe "Fixture Manager", ->
 
     describe "Reset Database", ->
 
-        describe.only "When resetDatabase is called with no option", ->
+        describe "When resetDatabase is called with no option", ->
 
             before (done) ->
                 @timeout 5000
