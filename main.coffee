@@ -64,7 +64,7 @@ class FixtureManager
             # Recover home password
             fs.readFile '/etc/cozy/controller.token', (err, credentials) =>
                 if err
-                    console.log 'If you are in production environment, you ' + 
+                    console.log 'If you are in production environment, you ' +
                         'should have root access'
                     callback()
                 else
@@ -100,8 +100,8 @@ class FixtureManager
         @silent = opts.silent if opts?.silent?
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
-            @client = new Client @dataSystemUrl 
-        @_setPermissions () => 
+            @client = new Client @dataSystemUrl
+        @_setPermissions () =>
             # We want to reset the default parameters at the end of the process
             if opts?.callback?
                 @callback = (err) =>
@@ -198,7 +198,7 @@ class FixtureManager
         msg = "\t* Removing all documents for doctype(s) #{doctypeList}..."
         @log msg
 
-        @_setPermissions () => 
+        @_setPermissions () =>
             # create 'all' requests for each doctypes
             @createAllRequestsFor doctypeNames, (err) =>
                 if err?
@@ -312,7 +312,7 @@ class FixtureManager
     _getAllRequest: (doctypeName) ->
         return """
                 function (doc) {
-                    if (doc.docType === "#{doctypeName}") {
+                    if (doc.docType.toLowerCase() === "#{doctypeName}") {
                         return emit(doc._id, doc);
                     }
                 }
