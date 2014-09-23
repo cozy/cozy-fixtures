@@ -23,10 +23,14 @@ describe "Fixture Manager", ->
 
     describe "Reset Database", ->
 
-        describe "When resetDatabase is called with no option", ->
+        describe.only "When resetDatabase is called with no option", ->
 
-            before (done) -> fixtures.load callback: done
-            before (done) -> fixtures.resetDatabase callback: done
+            before (done) ->
+                @timeout 5000
+                fixtures.load callback: done
+            before (done) ->
+                @timeout 5000
+                fixtures.resetDatabase callback: done
 
             it "It should remove every docs in the database", (done) ->
                 ds.get 'doctypes', (err, res, body) ->
