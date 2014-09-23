@@ -322,6 +322,7 @@ class FixtureManager
     _addDoc: (doc) -> (callback) =>
         _attachments = doc._attachments
         delete doc._attachments
+        doc.docType = doc.docType.toLowerCase()
         @client.post 'data/', doc, (err, res, body) =>
             if err?
                 if res?
@@ -361,7 +362,7 @@ class FixtureManager
 
     # Create a 'all' request for given doctype
     _createAllRequest: (doctypeName, callback) ->
-        all = map: @_getAllRequest doctypeName
+        all = map: @_getAllRequest doctypeName.toLowerCase()
         @client.put "request/#{doctypeName}/all/", all, (err, res, body) =>
             @log  "Error occurred during  -- #{err}".red if err?
             callback err
