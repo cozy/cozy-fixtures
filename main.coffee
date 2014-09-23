@@ -6,6 +6,8 @@ S = require 'string'
 util = require 'util'
 path = require 'path'
 
+DB_NAME = process.env.DB_NAME or 'cozy'
+
 class FixtureManager
 
 
@@ -421,11 +423,12 @@ class FixtureManager
 
         # Get all the design documents
         @clientCouch = new Client "http://localhost:5984/"
-        url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
+        url = DB_NAME + '/_all_docs?startkey="_design/"&endkey="_design0"' + \
               '&include_docs=true'
         @clientCouch.get url, (err, res, body) =>
             deleteFactory = (id, rev) => (callback) =>
-                @clientCouch.del "cozy/#{id}?rev=#{rev}", (err, res, body) =>
+                url = "#{DB_NAME}/#{id}?rev=#{rev}"
+                @clientCouch.del url, (err, res, body) =>
                     callback err, body
 
             # Design docs needed by the data system in order to work

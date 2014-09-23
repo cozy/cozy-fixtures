@@ -5,6 +5,8 @@ sinon = require 'sinon'
 nock = require 'nock'
 Client = require('request-json').JsonClient
 
+DB_NAME = process.env.DB_NAME or 'cozy'
+
 ds = new Client "http://localhost:9101/"
 authentifiedEnvs = ['test', 'production']
 if process.env.NODE_ENV in authentifiedEnvs
@@ -125,8 +127,8 @@ describe "Fixture Manager", ->
                     designsToRemove: ['alarm']
                     callback: done
 
-            it "There should be two 4 documents, doctypes, device, tags and contact", (done) ->
-                url = 'cozy/_all_docs?startkey="_design/"&endkey="_design0"' + \
+            it "There should be 4 documents, doctypes, device, tags and contact", (done) ->
+                url = DB_NAME + '/_all_docs?startkey="_design/"&endkey="_design0"' + \
                       '&include_docs=true'
                 couch.get url, (err, res, body) ->
                     should.not.exist err
