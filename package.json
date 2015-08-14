@@ -42,7 +42,7 @@
   },
   "scripts": {
     "prepublish": "cake build",
-    "test": "cake tests",
+    "test": "cake test",
     "postpublish": "rm -f main.js"
   },
   "repository": {

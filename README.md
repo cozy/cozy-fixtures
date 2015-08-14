@@ -36,7 +36,7 @@ npm install cozy-fixtures --save-dev
 ```coffeescript
 fixtures = require 'cozy-fixtures'
 fixtures.load
-    dirPath: 'path/to/fixtures' # default is './tests/fixtures/'
+    dirPath: 'path/to/fixtures' # default is './test/fixtures/'
     doctypeTarget: 'doctypeName' # default is null
     silent: true # default is false
     removeBeforeLoad: false # default is true. Remove docs for concerned doctypes before loading the data
@@ -113,7 +113,7 @@ A simple example:
     {
         "_id": "2",
         "docType": "File",
-        "_attachments": "tests/fixtures/files/fixtures.json",
+        "_attachments": "test/fixtures/files/fixtures.json",
         "class": "document",
         "lastModification": "Thu Oct 17 2013 08:29:21 GMT+0200 (CEST)",
         "name": "fixtures.json",
@@ -133,9 +133,9 @@ Note that you can add files as attachments. In order to achieve this, add a "_at
 [Cozy](http://cozy.io) is a platform that brings all your web services in the
 same private space.  With it, your web apps and your devices can share data
 easily, providing you with a new experience. You can install Cozy on your own
-hardware where no one profiles you. 
+hardware where no one profiles you.
 
-## Community 
+## Community
 
 You can reach the Cozy Community by:
 

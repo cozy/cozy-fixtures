@@ -24,7 +24,7 @@ program
 
         fixtureManager.load(
             {
-                'dirPath': program.args.shift() || './tests/fixtures/',
+                'dirPath': program.args.shift() || './test/fixtures/',
                 'doctypeTarget': program.doctype || null,
                 'silent': program.silent || null,
                 'removeBeforeLoad': removeBeforeLoad
@@ -49,4 +49,3 @@ program
     });
 
 program.parse(process.argv);
-

@@ -18,7 +18,7 @@ before_install:
     - cat forever-ds.log
     - sudo netstat -plunt
     - curl http://localhost:9101/
-    - coffee commands.coffee test-install fakeapp ../tests/fakeapp-package.json
+    - coffee commands.coffee test-install fakeapp ../test/fakeapp-package.json
     - cd ..
     - export NAME=fakeapp
     - export TOKEN=apptoken

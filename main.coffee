@@ -33,7 +33,7 @@ class FixtureManager
     auth: false
 
     defaultValues:
-        dirPath: './tests/fixtures/'
+        dirPath: './test/fixtures/'
         doctypeTarget: null
         selectedDoctypes: null
         silent: false
