@@ -11,6 +11,8 @@ program
   .option('-d, --doctype <doctypeName>', 'Only document of specified doctype will be processed.')
   .option('-l, --loadOnly', "A clean won't be performed before loading")
   .option('-s, --silent', 'The output will not be shown')
+  .option('-g, --generate', 'Generate fixtures with Mockaroo service using the provided definition file')
+  .option('-n, --count <n>', 'When generate fixtures, specify the number of entries wanted. Default to 10', parseInt)
 
 program
     .command("load [fixturesPath]")
@@ -27,6 +29,8 @@ program
                 'dirPath': program.args.shift() || './test/fixtures/',
                 'doctypeTarget': program.doctype || null,
                 'silent': program.silent || null,
+                'generate': program.generate || null,
+                'counter': program.count || 10,
                 'removeBeforeLoad': removeBeforeLoad
             }
         );

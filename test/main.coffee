@@ -244,5 +244,3 @@ describe "Fixture Manager", ->
                         should.exist body
                         body.should.not.have.property 'error'
                         done()
-
-

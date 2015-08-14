@@ -1,6 +1,7 @@
 require 'colors'
 async = require 'async'
 Client = require('request-json').JsonClient
+Mockaroo = require 'mockaroo'
 fs = require 'fs'
 S = require 'string'
 util = require 'util'
@@ -23,6 +24,10 @@ class FixtureManager
     selectedDoctypes: null
     # If true, the script won't output anything
     silent: null
+    # If true, use Mockaroo service to generate fixtures from the definiton
+    # files ; counter set number of entries wanted
+    generate: null
+    counter: 10
     # If set, will be executed at the end of the process
     callback: null
     # If true, will removed documents of concerned doctypes before loading docs
@@ -37,6 +42,8 @@ class FixtureManager
         doctypeTarget: null
         selectedDoctypes: null
         silent: false
+        generate: false
+        counter: 10
         callback: null
         removeBeforeLoad: true
         dataSystemUrl: "http://localhost:9101/"
@@ -56,6 +63,8 @@ class FixtureManager
         @doctypeTarget = @defaultValues['doctypeTarget']
         @selectedDoctypes = @defaultValues['selectedDoctypes']
         @silent = @defaultValues['silent']
+        @generate = @defaultValues['generate']
+        @counter = @defaultValues['counter']
         @callback = @defaultValues['callback']
         @removeBeforeLoad = @defaultValues['removeBeforeLoad']
         @dataSystemUrl = @defaultValues['dataSystemUrl']
@@ -103,6 +112,9 @@ class FixtureManager
         if opts?.dataSystemUrl?
             @dataSystemUrl = opts.dataSystemUrl
             @client = new Client @dataSystemUrl
+        if opts?.generate?
+            @generate = opts.generate
+            @counter = opts.counter
         @_setPermissions () =>
             # We want to reset the default parameters at the end of the process
             if opts?.callback?
@@ -277,7 +289,6 @@ class FixtureManager
 
     # Parse the JSON file
     _readJSONFile: (filename, callback, absolutePath = false) =>
-
         if absolutePath
             filePath = filename
         else
@@ -303,7 +314,34 @@ class FixtureManager
                     data = []
                     @log msg.red
 
-                callback err, data
+                # use JSON files as definition for Mockaroo if in generate mode
+                if @generate
+                    try
+                        client = new Mockaroo.Client
+                            apiKey: process.env.MOCKAROO_API_KEY
+                            secure: false
+
+                        client
+                            .generate
+                                count: @counter
+                                fields: data
+                            .then (records) ->
+                                callback null, records
+                            .catch (err) ->
+                                if err instanceof Mockaroo.errors.InvalidApiKeyError
+                                    console.log 'invalid api key'
+                                else if err instanceof Mockaroo.errors.UsageLimitExceededError
+                                    console.log 'usage limit exceeded'
+                                else
+                                    console.log 'unknow error', error
+                                callback err
+                    catch e
+                        err = "[ERROR] Cannot initialize Mockaroo client -- #{e}".red
+                        @log err.red
+
+                else
+                    callback err, data
+
         else
             errorMsg = "[WARN] Skipped #{filePath} because it is not a " + \
                         "JSON file."
