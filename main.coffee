@@ -329,11 +329,13 @@ class FixtureManager
                                 callback null, records
                             .catch (err) ->
                                 if err instanceof Mockaroo.errors.InvalidApiKeyError
-                                    console.log 'invalid api key'
+                                    err = 'invalid api key'
                                 else if err instanceof Mockaroo.errors.UsageLimitExceededError
-                                    console.log 'usage limit exceeded'
+                                    err = 'usage limit exceeded'
                                 else
-                                    console.log 'unknow error', error
+                                    err = error
+
+                                @log err.red
                                 callback err
                     catch e
                         err = "[ERROR] Cannot initialize Mockaroo client -- #{e}".red
