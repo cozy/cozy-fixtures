@@ -1,11 +1,15 @@
 require 'colors'
-async = require 'async'
-Client = require('request-json').JsonClient
+
+async    = require 'async'
+Client   = require('request-json').JsonClient
 Mockaroo = require 'mockaroo'
-fs = require 'fs'
-S = require 'string'
-util = require 'util'
-path = require 'path'
+fs       = require 'fs'
+S        = require 'string'
+util     = require 'util'
+path     = require 'path'
+
+InvalidApiKeyError      = Mockaroo.errors.InvalidApiKeyError
+UsageLimitExceededError = Mockaroo.errors.UsageLimitExceededError
 
 DB_NAME = process.env.DB_NAME or 'cozy'
 
@@ -328,9 +332,9 @@ class FixtureManager
                             .then (records) ->
                                 callback null, records
                             .catch (err) ->
-                                if err instanceof Mockaroo.errors.InvalidApiKeyError
+                                if err instanceof InvalidApiKeyError
                                     err = 'invalid api key'
-                                else if err instanceof Mockaroo.errors.UsageLimitExceededError
+                                else if err instanceof UsageLimitExceededError
                                     err = 'usage limit exceeded'
                                 else
                                     err = error
@@ -338,7 +342,9 @@ class FixtureManager
                                 @log err.red
                                 callback err
                     catch e
-                        err = "[ERROR] Cannot initialize Mockaroo client -- #{e}".red
+                        err = """
+                            [ERROR] Cannot initialize Mockaroo client -- #{e}
+                        """
                         @log err.red
 
                 else
