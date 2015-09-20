@@ -25,7 +25,7 @@ walk = (dir, excludeElements = []) ->
                     fileList.push filename
     return fileList
 
-task 'tests', 'run server tests, ./test is parsed by default, otherwise use -f or --dir', (opts) ->
+task 'test', 'run server tests, ./test is parsed by default, otherwise use -f or --dir', (opts) ->
     options   = opts
     testFiles = []
     if options.dir
@@ -34,7 +34,7 @@ task 'tests', 'run server tests, ./test is parsed by default, otherwise use -f o
     if options.file
         testFiles  = testFiles.concat options.file
     if not(options.dir or options.file)
-        testFiles = walk "tests"
+        testFiles = walk "test"
 
     runTests testFiles
 
@@ -66,7 +66,7 @@ runTests = (fileList) ->
 
 task "lint", "Run coffeelint on source files", ->
 
-    lintFiles = walk '.',  ['node_modules', 'tests']
+    lintFiles = walk '.',  ['node_modules', 'test']
 
     # if installed globally, output will be colored
     testCommand = "coffeelint -v"

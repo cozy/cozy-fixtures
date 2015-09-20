@@ -20,8 +20,9 @@ cozy-fixtures load # will load all the fixtures inside ./tests/fixtures/
 cozy-fixtures load ./fixtures/ # you can specify a folder
 cozy-fixtures load ./fixtures/my-super-fixtures.json # or a file
 cozy-fixtures load -d contact # only load the documents for a specified doctype
+cozy-fixtures load -g -n 25 # uses fixtures/*.json files as model for Mockaroo to auto-generate 25 records
 cozy-fixtures load -s # run the script quietly
-cozy-fixutres -l load # doesn't remove documents before loading
+cozy-fixtures -l load # doesn't remove documents before loading
 ```
 
 ## Automatic Tests
@@ -36,7 +37,7 @@ npm install cozy-fixtures --save-dev
 ```coffeescript
 fixtures = require 'cozy-fixtures'
 fixtures.load
-    dirPath: 'path/to/fixtures' # default is './tests/fixtures/'
+    dirPath: 'path/to/fixtures' # default is './test/fixtures/'
     doctypeTarget: 'doctypeName' # default is null
     silent: true # default is false
     removeBeforeLoad: false # default is true. Remove docs for concerned doctypes before loading the data
@@ -113,7 +114,7 @@ A simple example:
     {
         "_id": "2",
         "docType": "File",
-        "_attachments": "tests/fixtures/files/fixtures.json",
+        "_attachments": "test/fixtures/files/fixtures.json",
         "class": "document",
         "lastModification": "Thu Oct 17 2013 08:29:21 GMT+0200 (CEST)",
         "name": "fixtures.json",
@@ -126,6 +127,51 @@ A simple example:
 Note that you can add files as attachments. In order to achieve this, add a "_attachments" field to your fixture and put the path relatively to where you run the command.
 
 
+# Use auto-generation through [Mockaroo](https://www.mockaroo.com) service
+
+You can use the Mockaroo service to generate records and inject them as fixtures. You must define your model in your fixtures files, as follow:
+```json
+[
+  {
+    "name": "docType",
+    "type": "Template",
+    "value": "Alarm"
+  },
+  {
+    "name": "action",
+    "type": "Template",
+    "value": "DISPLAY"
+  },
+  {
+    "name": "trigg",
+    "type": "Date",
+    "min": "01/01/2000",
+    "max": "12/31/2015",
+    "format": "%a %b %d %Y %H:%M:%S"
+  },
+  {
+    "name": "description",
+    "type": "Sentences",
+    "min": 1,
+    "max": 1,
+    "percentBlank": 20
+  },
+  {
+    "name": "related",
+    "type": "Blank"
+  }
+]
+```
+
+Your model declares all fields wanted in each record, and each field must have at least a _name_ and _type_ keys. They relies on the Mockaroo API (see [their documentation for more information](https://www.mockaroo.com/api/docs) about types and their parameters). Complex formats such as nested contents are allowed.
+
+Note that an API key is needed to use the service. It can be obtained freely (limit to 200 request per day) on Mockaroo. Just sign up to the service and get your key in _my account_ section. This key must be provided in the `MOCKAROO_API_KEY`:
+
+```sh
+MOCKAROO_API_KEY="my_api_key" cozy-fixtures -g
+```
+
+
 ## What is Cozy?
 
 ![Cozy Logo](https://raw.github.com/mycozycloud/cozy-setup/gh-pages/assets/images/happycloud.png)
@@ -133,9 +179,9 @@ Note that you can add files as attachments. In order to achieve this, add a "_at
 [Cozy](http://cozy.io) is a platform that brings all your web services in the
 same private space.  With it, your web apps and your devices can share data
 easily, providing you with a new experience. You can install Cozy on your own
-hardware where no one profiles you. 
+hardware where no one profiles you.
 
-## Community 
+## Community
 
 You can reach the Cozy Community by:
 
