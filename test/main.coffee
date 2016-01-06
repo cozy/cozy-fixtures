@@ -1,6 +1,7 @@
 path = require 'path'
 fs = require 'fs'
 should = require('chai').should()
+expect = require('chai').expect
 sinon = require 'sinon'
 nock = require 'nock'
 Client = require('request-json').JsonClient
@@ -36,7 +37,7 @@ describe "Fixture Manager", ->
                 ds.get 'doctypes', (err, res, body) ->
                     should.not.exist err
                     should.exist body
-                    body.length.should.equal 0
+                    body.should.be.empty
                     done()
 
         describe "When resetDatabase is called with option removeView", ->
@@ -86,7 +87,7 @@ describe "Fixture Manager", ->
                 should.exist @err
 
             it "The process should stop", ->
-                @stub.callCount.should.equal 0
+                expect(@stub.callCount).to.equal 0
 
     describe "Remove Every Views", ->
 
@@ -110,7 +111,7 @@ describe "Fixture Manager", ->
                     should.not.exist err
                     should.exist body
                     body.should.have.property 'rows'
-                    body.rows.length.should.equal 3
+                    body.rows.should.have.length 3
                     body.rows[0].id.should.equal "_design/device"
                     body.rows[1].id.should.equal "_design/doctypes"
                     body.rows[2].id.should.equal "_design/tags"
@@ -138,7 +139,7 @@ describe "Fixture Manager", ->
                     should.not.exist err
                     should.exist body
                     body.should.have.property 'rows'
-                    body.rows.length.should.equal 4
+                    body.rows.should.have.length 4
                     body.rows[0].id.should.equal "_design/contact"
                     body.rows[1].id.should.equal "_design/device"
                     body.rows[2].id.should.equal "_design/doctypes"
@@ -183,7 +184,7 @@ describe "Fixture Manager", ->
                 ds.post "request/#{@doctype}/all/", {}, (err, res, body) =>
                     should.not.exist err
                     should.exist body
-                    body.length.should.equal 1
+                    body.should.have.length 1
                     body[0].value.docType.should.equal @doctype
                     Object.keys(@doc).forEach (field) ->
                         should.exist body[0].value[field]
@@ -233,7 +234,7 @@ describe "Fixture Manager", ->
                     Object.keys(@doc).forEach (field) =>
                         # if the value is null, body[field] is null
                         # but assertion should be true
-                        body[field]?.should.deep.equal @doc[field]
+                        expect(body[field]).to.deep.equal @doc[field]
                     body.should.have.property 'binary'
                     @binary = body.binary
                     done()
